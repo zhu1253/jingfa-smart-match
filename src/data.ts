@@ -1,4 +1,4 @@
-import type { ClientProfile, Partner, Product } from "./types";
+import type { ClientProfile, ClientRecord, Partner, Product } from "./types";
 
 const baseMaterials = [
   "营业执照",
@@ -244,21 +244,37 @@ export const products: Product[] = [
 ];
 
 export const partners: Partner[] = [
-  { name: "丰泊国际 FundPark", type: "供应链金融科技", description: "成熟跨境供应链融资与资产输出平台", priority: "最高" },
-  { name: "Dowsure 豆沙包", type: "供应链金融科技", description: "出口跨境电商金融科技服务商", priority: "最高" },
-  { name: "PingPong", type: "跨境支付", description: "跨境收款与交易数据合作入口", priority: "高" },
-  { name: "连连国际", type: "跨境支付", description: "跨境收结汇与资金流转数据", priority: "高" },
-  { name: "店小秘", type: "ERP / SaaS", description: "沉淀订单、库存与店铺经营数据", priority: "高" },
-  { name: "马帮 ERP", type: "ERP / SaaS", description: "出口跨境电商经营管理平台", priority: "高" },
-  { name: "纵腾网络", type: "物流与海外仓", description: "海外仓库存、货权与物流数据", priority: "中" },
-  { name: "万邑通 WINIT", type: "物流与海外仓", description: "欧美海外仓及跨境物流服务", priority: "中" },
-  { name: "深圳市跨境电子商务协会", type: "协会与产业园", description: "跨境卖家批量触达与行业协同", priority: "中长期" },
-  { name: "Amazon", type: "平台官方", description: "平台生态经营数据与融资入口", priority: "中长期" },
+  { id: "fundpark", name: "丰泊国际 FundPark", type: "供应链金融科技", description: "成熟跨境供应链融资与资产输出平台", priority: "最高", city: "中国香港", status: "合作中", services: ["订单融资", "库存融资", "平台回款数据"] },
+  { id: "dowsure", name: "Dowsure 豆沙包", type: "供应链金融科技", description: "出口跨境电商金融科技服务商", priority: "最高", city: "浙江·杭州", status: "优先合作", services: ["跨境电商保险", "供应链金融", "风险数据"] },
+  { id: "pingpong", name: "PingPong", type: "跨境支付", description: "跨境收款与交易数据合作入口", priority: "高", city: "浙江·杭州", status: "合作中", services: ["跨境收款", "交易数据", "结售汇"] },
+  { id: "lianlian", name: "连连国际", type: "跨境支付", description: "跨境收结汇与资金流转数据", priority: "高", city: "浙江·杭州", status: "待接洽", services: ["跨境支付", "全球收单", "资金流数据"] },
+  { id: "dianxiaomi", name: "店小秘", type: "ERP / SaaS", description: "沉淀订单、库存与店铺经营数据", priority: "高", city: "广东·深圳", status: "优先合作", services: ["订单数据", "库存管理", "多平台运营"] },
+  { id: "mabang", name: "马帮 ERP", type: "ERP / SaaS", description: "出口跨境电商经营管理平台", priority: "高", city: "广东·深圳", status: "待接洽", services: ["ERP 数据", "供应链管理", "店铺经营分析"] },
+  { id: "zongteng", name: "纵腾网络", type: "物流与海外仓", description: "海外仓库存、货权与物流数据", priority: "中", city: "广东·深圳", status: "合作中", services: ["海外仓", "国际物流", "货权数据"] },
+  { id: "winit", name: "万邑通 WINIT", type: "物流与海外仓", description: "欧美海外仓及跨境物流服务", priority: "中", city: "上海", status: "待接洽", services: ["海外仓", "跨境物流", "库存数据"] },
+  { id: "szcea", name: "深圳市跨境电子商务协会", type: "协会与产业园", description: "跨境卖家批量触达与行业协同", priority: "中长期", city: "广东·深圳", status: "合作中", services: ["企业触达", "行业活动", "政策协同"] },
+  { id: "amazon", name: "Amazon", type: "平台官方", description: "平台生态经营数据与融资入口", priority: "中长期", city: "全球", status: "待接洽", services: ["平台经营数据", "卖家生态", "回款入口"] },
 ];
 
-export const recentClients = [
-  { name: "深圳海拓科技", city: "广东·深圳", industry: "跨境电商", completeness: 100 },
-  { name: "广州优品贸易", city: "广东·广州", industry: "进出口贸易", completeness: 72 },
-  { name: "杭州星海科技", city: "浙江·杭州", industry: "SaaS服务", completeness: 64 },
-  { name: "义乌拓盈进出口", city: "浙江·义乌", industry: "贸易商", completeness: 58 },
+export const clients: ClientRecord[] = [
+  { id: "haituo", profile: defaultClient, completeness: 100, stage: "可匹配", owner: "张顾问", updatedAt: "今天 09:42" },
+  {
+    id: "youpin", completeness: 92, stage: "可匹配", owner: "张顾问", updatedAt: "昨天 16:18",
+    profile: { ...defaultClient, companyName: "广州优品贸易", industry: "进出口贸易", city: "广东·广州", operatingYears: 3, monthlyFlow: 180, annualSales: 2250, annualRepayment: 960, overdueSixMonths: 1, inquiryTwoMonths: 3, debtRatio: 58, assets: "出口应收账款、库存、商标", hasDomesticProperty: false, platform: "B2B出口", amazonAhr: 0, refundRate: 4, usSalesShare: 25, fbaTurns: 4, hasHongKongCompany: true, hasHsbcAccount: false, isTradelinkWhitelist: true, requestedAmount: 300, requestedTerm: 12, purpose: "订单履约" },
+  },
+  {
+    id: "xinghai", completeness: 86, stage: "跟进中", owner: "李顾问", updatedAt: "09月02日 11:06",
+    profile: { ...defaultClient, companyName: "杭州星海科技", industry: "SaaS服务", city: "浙江·杭州", operatingYears: 5, monthlyFlow: 95, annualSales: 1100, annualRepayment: 540, overdueSixMonths: 0, inquiryTwoMonths: 1, debtRatio: 34, assets: "软件著作权、应收账款、办公设备", hasDomesticProperty: true, platform: "独立站", amazonAhr: 0, refundRate: 0, usSalesShare: 0, fbaTurns: 0, hasHongKongCompany: false, hasHsbcAccount: false, isTradelinkWhitelist: false, requestedAmount: 200, requestedTerm: 24, purpose: "日常经营周转" },
+  },
+  {
+    id: "tuoying", completeness: 78, stage: "待补全", owner: "王顾问", updatedAt: "08月30日 14:25",
+    profile: { ...defaultClient, companyName: "义乌拓盈进出口", industry: "进出口贸易", city: "浙江·义乌", operatingYears: 2, monthlyFlow: 260, annualSales: 3120, annualRepayment: 1500, overdueSixMonths: 4, inquiryTwoMonths: 5, debtRatio: 71, assets: "出口库存、应收账款", hasDomesticProperty: false, platform: "B2B出口", amazonAhr: 0, refundRate: 7, usSalesShare: 10, fbaTurns: 3, hasHongKongCompany: true, hasHsbcAccount: false, isTradelinkWhitelist: false, requestedAmount: 450, requestedTerm: 6, purpose: "物流周转" },
+  },
 ];
+
+export const recentClients = clients.map(({ profile, completeness }) => ({
+  name: profile.companyName,
+  city: profile.city,
+  industry: profile.industry,
+  completeness,
+}));

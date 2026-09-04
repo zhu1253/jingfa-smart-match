@@ -52,9 +52,22 @@ export type MatchResult = {
   estimate: string;
 };
 
+export type ClientRecord = {
+  id: string;
+  profile: ClientProfile;
+  completeness: number;
+  stage: "可匹配" | "待补全" | "跟进中";
+  owner: string;
+  updatedAt: string;
+};
+
 export type Partner = {
+  id: string;
   name: string;
   type: string;
   description: string;
   priority: "最高" | "高" | "中" | "中长期";
+  city: string;
+  status: "优先合作" | "合作中" | "待接洽";
+  services: string[];
 };

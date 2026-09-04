@@ -1,4 +1,4 @@
-import type { ClientProfile, MatchResult } from "./types";
+import type { ClientProfile, MatchResult, Product } from "./types";
 import { products } from "./data";
 
 export const REQUIRED_FIELDS: Array<{ key: keyof ClientProfile; label: string }> = [
@@ -23,7 +23,7 @@ export function getMissingFields(client: ClientProfile) {
   }).map((item) => item.label);
 }
 
-export function runMatching(client: ClientProfile): MatchResult[] {
+export function runMatching(client: ClientProfile, productCatalog: Product[] = products): MatchResult[] {
   const baseFit: Record<string, number> = {
     "webank-data": 92,
     "pingan-amazon": 88,
@@ -35,7 +35,7 @@ export function runMatching(client: ClientProfile): MatchResult[] {
     "hsbc-ecommerce": 72,
     fundpark: 68,
   };
-  return products
+  return productCatalog
     .map((product) => {
       const { passes, failures } = product.evaluate(client);
       const baseline = baseFit[product.id] ?? 75;
