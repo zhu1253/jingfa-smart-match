@@ -24,7 +24,7 @@ pnpm dev
 
 默认本地访问地址：`http://localhost:4173/`
 
-线上访问地址将在 GitHub Pages 首次部署完成后补充。
+线上访问地址：[https://zhu1253.github.io/jingfa-smart-match/](https://zhu1253.github.io/jingfa-smart-match/)
 
 ## 智能体接入所需配置
 
