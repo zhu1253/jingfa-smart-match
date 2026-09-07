@@ -32,6 +32,8 @@ export type Product = {
   id: string;
   name: string;
   funder: string;
+  type: string;
+  coreFeatures: string[];
   audience: string;
   amountLabel: string;
   rateLabel: string;
