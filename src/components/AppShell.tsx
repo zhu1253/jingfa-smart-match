@@ -1,8 +1,8 @@
 import { useState, type ReactNode } from "react";
-import { Banknote, BookOpen, Bot, Building2, ChevronDown, Handshake, LayoutDashboard, LockKeyhole, Menu, PackageSearch, PanelLeftClose, Search, Send, Settings, Users, X } from "lucide-react";
+import { Banknote, BookOpen, Bot, Building2, ChevronDown, CircleHelp, Handshake, LayoutDashboard, LockKeyhole, Menu, PackageSearch, PanelLeftClose, Search, Send, Settings, Users, X } from "lucide-react";
 import { Logo } from "./ui";
 
-export type View = "dashboard" | "match" | "clients" | "products" | "partners" | "library" | "settings" | "company";
+export type View = "dashboard" | "match" | "clients" | "products" | "partners" | "library" | "settings" | "company" | "help";
 
 const items = [
   { id: "dashboard" as const, label: "工作台", icon: LayoutDashboard },
@@ -39,7 +39,7 @@ export function AppShell({ view, onNavigate, libraryUnlocked, children }: { view
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const select = (next: View) => { onNavigate(next); setMobileOpen(false); };
-  const activeLabel = items.find((item) => item.id === view)?.label ?? "工作台";
+  const activeLabel = view === "help" ? "帮助中心" : items.find((item) => item.id === view)?.label ?? "工作台";
   return <div className={`app-shell ${collapsed ? "sidebar-collapsed" : ""}`}>
     <a className="skip-link" href="#main-content">跳到主要内容</a>
     <aside className={`sidebar ${mobileOpen ? "mobile-open" : ""}`}>
@@ -50,7 +50,7 @@ export function AppShell({ view, onNavigate, libraryUnlocked, children }: { view
     </aside>
     {mobileOpen ? <button className="mobile-backdrop" aria-label="关闭导航" onClick={() => setMobileOpen(false)} /> : null}
     <section className="main-column">
-      <header className="topbar"><button className="icon-button mobile-menu" aria-label="打开导航" onClick={() => setMobileOpen(true)}><Menu size={19} /></button><div className="topbar-title"><span>京发智配</span><i>/</i><strong>{activeLabel}</strong></div><label className="global-search"><Search size={16} /><input aria-label="搜索产品、客户或伙伴" placeholder="搜索产品、客户或伙伴" onFocus={() => select("products")} readOnly /></label><button className="help-button" onClick={() => select("library")}>帮助中心</button><div className="user-menu"><span className="avatar">张</span><span><strong>张顾问</strong><small>融资顾问</small></span><ChevronDown size={14} /></div></header>
+      <header className="topbar"><button className="icon-button mobile-menu" aria-label="打开导航" onClick={() => setMobileOpen(true)}><Menu size={19} /></button><div className="topbar-title"><span>京发智配</span><i>/</i><strong>{activeLabel}</strong></div><label className="global-search"><Search size={16} /><input aria-label="搜索产品、客户或伙伴" placeholder="搜索产品、客户或伙伴" onFocus={() => select("products")} readOnly /></label><button className={`help-button ${view === "help" ? "active" : ""}`} onClick={() => select("help")} aria-current={view === "help" ? "page" : undefined}><CircleHelp size={16} /><span>帮助中心</span></button><div className="user-menu"><span className="avatar">张</span><span><strong>张顾问</strong><small>融资顾问</small></span><ChevronDown size={14} /></div></header>
       <main id="main-content">{children}</main>
     </section>
     <AgentDock />
