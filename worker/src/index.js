@@ -130,7 +130,7 @@ async function handleChat(request, env, origin, requestId) {
       ],
       stream: false,
       temperature: 0.2,
-      max_tokens: 1_600,
+      max_tokens: 900,
     });
     const requestOptions = {
       method: "POST",
