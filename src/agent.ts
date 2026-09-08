@@ -7,6 +7,7 @@ export type AgentApiMessage = { role: "user" | "assistant"; content: string };
 type AgentApiResponse = {
   message?: string;
   requestId?: string;
+  degraded?: boolean;
   error?: { code?: string; message?: string };
 };
 
@@ -64,32 +65,48 @@ export function buildAgentContext(record: ClientRecord, catalog: Product[], curr
 export async function requestAgentReply(messages: AgentApiMessage[], context: AgentContext, signal: AbortSignal) {
   if (!AGENT_PROXY_URL) throw new Error("智能体服务地址尚未配置，请联系管理员。");
 
-  let response: Response;
-  try {
-    response = await fetch(`${AGENT_PROXY_URL}/chat`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ messages, context }),
-      signal,
-    });
-  } catch (error) {
-    if (signal.aborted) throw error;
-    throw new Error("网络连接失败，请检查网络后重试。");
+  const requestBody = JSON.stringify({ messages, context });
+  let fallbackReply: { message: string; requestId?: string } | null = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    let response: Response;
+    try {
+      response = await fetch(`${AGENT_PROXY_URL}/chat`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: requestBody,
+        signal,
+      });
+    } catch (error) {
+      if (signal.aborted) throw error;
+      if (fallbackReply) return fallbackReply;
+      throw new Error("网络连接失败，请检查网络后重试。");
+    }
+
+    let payload: AgentApiResponse = {};
+    try {
+      payload = await response.json() as AgentApiResponse;
+    } catch {
+      // A sanitized fallback is more useful than exposing a proxy response body.
+    }
+
+    if (!response.ok) {
+      if (fallbackReply) return fallbackReply;
+      throw new Error(payload.error?.message || (response.status === 429
+        ? "当前咨询较多，请稍后再试。"
+        : "智能体服务暂时不可用，请稍后重试。"));
+    }
+    if (!payload.message) {
+      if (fallbackReply) return fallbackReply;
+      throw new Error("智能体没有返回有效内容，请重试。");
+    }
+    if (!payload.degraded) return { message: payload.message, requestId: payload.requestId };
+
+    fallbackReply = { message: payload.message, requestId: payload.requestId };
+    if (attempt === 0) {
+      await new Promise((resolve) => window.setTimeout(resolve, 700));
+      if (signal.aborted) throw new DOMException("请求已取消", "AbortError");
+    }
   }
 
-  let payload: AgentApiResponse = {};
-  try {
-    payload = await response.json() as AgentApiResponse;
-  } catch {
-    // A sanitized fallback is more useful than exposing a proxy response body.
-  }
-
-  if (!response.ok) {
-    throw new Error(payload.error?.message || (response.status === 429
-      ? "当前咨询较多，请稍后再试。"
-      : "智能体服务暂时不可用，请稍后重试。"));
-  }
-  if (!payload.message) throw new Error("智能体没有返回有效内容，请重试。");
-
-  return { message: payload.message, requestId: payload.requestId };
+  return fallbackReply!;
 }

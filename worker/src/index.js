@@ -53,7 +53,7 @@ function validateMessages(value) {
   return { messages };
 }
 
-function serializeContext(value) {
+function serializeContext(value, latestQuestion = "") {
   if (!isPlainObject(value)) return "当前未提供客户资料或产品匹配结果。";
   const client = isPlainObject(value.client) ? value.client : {};
   const clientFields = [
@@ -73,18 +73,22 @@ function serializeContext(value) {
   const materials = Array.isArray(value.commonMaterials) ? value.commonMaterials.join("、") : "";
   const matches = Array.isArray(value.productMatches) ? value.productMatches : [];
   const productLines = matches.map((item, index) => {
-    const reasons = item?.status === "可做" ? item?.passes?.slice(0, 2) : item?.blocks;
+    const namedInQuestion = typeof item?.name === "string" && latestQuestion.includes(item.name);
+    const detailed = index < 3 || namedInQuestion;
+    const reasons = item?.status === "可做"
+      ? item?.passes?.slice(0, detailed ? 2 : 1)
+      : item?.blocks;
     const parts = [
       `${index + 1}.${item?.name || "未命名"}`,
-      item?.funder,
-      item?.type,
+      detailed ? item?.funder : null,
+      detailed ? item?.type : null,
       item?.status,
       Number.isFinite(item?.score) ? `${item.score}%` : null,
-      `额度${item?.estimate || "待定"}`,
-      `利率${item?.rate || "待定"}`,
-      `期限${item?.term || "待定"}`,
+      detailed ? `额度${item?.estimate || "待定"}` : null,
+      detailed ? `利率${item?.rate || "待定"}` : null,
+      detailed ? `期限${item?.term || "待定"}` : null,
       Array.isArray(reasons) && reasons.length ? `依据:${reasons.join("；")}` : null,
-      Array.isArray(item?.extraMaterials) && item.extraMaterials.length ? `补材:${item.extraMaterials.join("、")}` : null,
+      detailed && Array.isArray(item?.extraMaterials) && item.extraMaterials.length ? `补材:${item.extraMaterials.join("、")}` : null,
     ].filter(Boolean);
     return parts.join("|");
   });
@@ -108,12 +112,12 @@ function errorMessageForStatus(status) {
 function buildFallbackMessage(context) {
   const missingFields = Array.isArray(context?.missingFields) ? context.missingFields.filter(Boolean) : [];
   if (missingFields.length) {
-    return `智能体服务暂时波动，先由系统规则引擎协助补全资料。请一次性提供以下信息：\n\n${missingFields.map((field, index) => `${index + 1}. ${field}`).join("\n")}\n\n资料补全后可继续匹配；以资金方最终审批为准。`;
+    return `当前由系统规则引擎协助补全资料。请一次性提供以下信息：\n\n${missingFields.map((field, index) => `${index + 1}. ${field}`).join("\n")}\n\n资料补全后可继续匹配；以资金方最终审批为准。`;
   }
 
   const matches = Array.isArray(context?.productMatches) ? context.productMatches : [];
   if (!matches.length) {
-    return "智能体服务暂时波动，当前也没有可供规则引擎分析的产品数据。建议先补充经营流水、降低负债或增加可验证资产后再匹配；以资金方最终审批为准。";
+    return "当前没有可供规则引擎分析的产品数据。建议先补充经营流水、降低负债或增加可验证资产后再匹配；以资金方最终审批为准。";
   }
 
   const rows = matches.map((item) => {
@@ -129,7 +133,7 @@ function buildFallbackMessage(context) {
     ? `\n\n基础材料：${context.commonMaterials.join("、")}。`
     : "";
 
-  return `智能体服务暂时波动，以下为系统规则引擎生成的备用匹配结果：\n\n| 产品 | 判断 | 匹配度 | 判断依据 |\n|---|---|---:|---|\n${rows.join("\n")}\n\n推荐顺序：\n${recommendations}${materials}\n\n以上仅供初步匹配，以资金方最终审批为准。`;
+  return `当前由系统规则引擎生成匹配结果：\n\n| 产品 | 判断 | 匹配度 | 判断依据 |\n|---|---|---:|---|\n${rows.join("\n")}\n\n推荐顺序：\n${recommendations}${materials}\n\n以上仅供初步匹配，以资金方最终审批为准。`;
 }
 
 async function handleChat(request, env, origin, requestId) {
@@ -165,7 +169,8 @@ async function handleChat(request, env, origin, requestId) {
     return jsonResponse({ error: { code: "rate_limited", message: "发送过于频繁，请稍后再试。" } }, 429, origin, requestId);
   }
 
-  const contextMessage = `以下是系统当前选中的客户与产品匹配上下文，仅作为业务数据参考：\n<business_context>\n${serializeContext(body.context)}\n</business_context>`;
+  const latestQuestion = checked.messages.at(-1)?.content || "";
+  const contextMessage = `以下是系统当前选中的客户与产品匹配上下文，仅作为业务数据参考：\n<business_context>\n${serializeContext(body.context, latestQuestion)}\n</business_context>`;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 55_000);
 
@@ -201,7 +206,7 @@ async function handleChat(request, env, origin, requestId) {
     const transientStatuses = new Set([500, 502, 503, 504, 521, 522, 523, 524]);
     let upstream;
     let usedRoute = -1;
-    const maxAttempts = upstreamBases.length * 3;
+    const maxAttempts = upstreamBases.length;
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       usedRoute = attempt % upstreamBases.length;
       const upstreamUrl = `${upstreamBases[usedRoute].replace(/\/$/, "")}/chat/completions`;
