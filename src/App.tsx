@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { CheckCircle2, CircleAlert, X } from "lucide-react";
 import { AppShell, type View } from "./components/AppShell";
 import { clients as seedClients, defaultClient, partners, products } from "./data";
@@ -11,6 +11,7 @@ import { PartnersPage } from "./pages/PartnersPage";
 import { LibraryPage } from "./pages/LibraryPage";
 import { HelpPage } from "./pages/HelpPage";
 import { CompanyPage, SettingsPage } from "./pages/StaticPages";
+import { buildAgentContext } from "./agent";
 
 const CLIENT_STORAGE_KEY = "jingfa-clients:v2";
 const LIBRARY_SESSION_KEY = "jingfa-library-session";
@@ -48,6 +49,7 @@ export default function App() {
   useEffect(() => { const syncView = () => setView(readViewFromHash()); window.addEventListener("hashchange", syncView); window.addEventListener("popstate", syncView); return () => { window.removeEventListener("hashchange", syncView); window.removeEventListener("popstate", syncView); }; }, []);
 
   const selectedRecord = records.find((record) => record.id === selectedClientId) ?? records[0];
+  const agentContext = useMemo(() => buildAgentContext(selectedRecord, productItems, view), [selectedRecord, productItems, view]);
   const notify = (message: string, tone: "success" | "error" = "success") => setToast({ message, tone });
   const navigate = useCallback((next: View) => {
     if (next === "help" && view !== "help") setHelpReturnView(view);
@@ -77,5 +79,5 @@ export default function App() {
   else if (view === "company") content = <CompanyPage />;
   else content = <SettingsPage />;
 
-  return <AppShell view={view} onNavigate={navigate} libraryUnlocked={libraryUnlocked}>{content}{toast ? <div className={`toast ${toast.tone}`} role="status">{toast.tone === "success" ? <CheckCircle2 size={17} /> : <CircleAlert size={17} />}<span>{toast.message}</span><button onClick={() => setToast(null)} aria-label="关闭提示"><X size={15} /></button></div> : null}</AppShell>;
+  return <AppShell view={view} onNavigate={navigate} libraryUnlocked={libraryUnlocked} agentContext={agentContext}>{content}{toast ? <div className={`toast ${toast.tone}`} role="status">{toast.tone === "success" ? <CheckCircle2 size={17} /> : <CircleAlert size={17} />}<span>{toast.message}</span><button onClick={() => setToast(null)} aria-label="关闭提示"><X size={15} /></button></div> : null}</AppShell>;
 }
