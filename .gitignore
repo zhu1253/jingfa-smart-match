@@ -5,6 +5,9 @@ dist/
 npm-debug.log*
 pnpm-debug.log*
 *.tsbuildinfo
+.dev.vars
+.dev.vars.*
+worker/.wrangler/
 
 # Impeccable local runtime artifacts
 .impeccable/config.local.json

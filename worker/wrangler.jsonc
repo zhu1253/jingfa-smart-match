@@ -1,0 +1,37 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "jingfa-agent-proxy",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-08",
+  "compatibility_flags": ["nodejs_compat", "allow_custom_ports"],
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 0.1
+  },
+  "vars": {
+    "UPSTREAM_BASE_URL": "http://lbai.ihanchen.com:21288/v1",
+    "UPSTREAM_ORIGIN_URL": "http://219-135-99-190.sslip.io:21288/v1",
+    "AGENT_MODEL": "Jfclaw-1.0",
+    "ALLOWED_ORIGINS": "https://zhu1253.github.io"
+  },
+  "ratelimits": [
+    {
+      "name": "CLIENT_RATE_LIMITER",
+      "namespace_id": "12531253",
+      "simple": {
+        "limit": 20,
+        "period": 60
+      }
+    },
+    {
+      "name": "SERVICE_RATE_LIMITER",
+      "namespace_id": "12531254",
+      "simple": {
+        "limit": 120,
+        "period": 60
+      }
+    }
+  ]
+}
