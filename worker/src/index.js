@@ -79,6 +79,33 @@ function errorMessageForStatus(status) {
   return "智能体暂时无法完成本次回答，请稍后重试。";
 }
 
+function buildFallbackMessage(context) {
+  const missingFields = Array.isArray(context?.missingFields) ? context.missingFields.filter(Boolean) : [];
+  if (missingFields.length) {
+    return `智能体服务暂时波动，先由系统规则引擎协助补全资料。请一次性提供以下信息：\n\n${missingFields.map((field, index) => `${index + 1}. ${field}`).join("\n")}\n\n资料补全后可继续匹配；以资金方最终审批为准。`;
+  }
+
+  const matches = Array.isArray(context?.productMatches) ? context.productMatches : [];
+  if (!matches.length) {
+    return "智能体服务暂时波动，当前也没有可供规则引擎分析的产品数据。建议先补充经营流水、降低负债或增加可验证资产后再匹配；以资金方最终审批为准。";
+  }
+
+  const rows = matches.map((item) => {
+    const basisItems = item?.status === "可做" ? item?.passes : item?.blocks;
+    const basis = Array.isArray(basisItems) && basisItems.length ? basisItems.join("；") : "暂无进一步说明";
+    return `| ${item?.name || "未命名产品"} | ${item?.status || "待判断"} | ${Number.isFinite(item?.score) ? `${item.score}%` : "—"} | ${basis} |`;
+  });
+  const recommended = matches.filter((item) => item?.status === "可做").slice(0, 3);
+  const recommendations = recommended.length
+    ? recommended.map((item, index) => `${index + 1}. **${item.name}**：预估额度 ${item.estimate || "待评估"}，利率 ${item.rate || "待评估"}，期限 ${item.term || "待评估"}。`).join("\n")
+    : "当前无【可做】产品。建议补充流水、降低负债或增加可验证资产后重新匹配。";
+  const materials = Array.isArray(context?.commonMaterials) && context.commonMaterials.length
+    ? `\n\n基础材料：${context.commonMaterials.join("、")}。`
+    : "";
+
+  return `智能体服务暂时波动，以下为系统规则引擎生成的备用匹配结果：\n\n| 产品 | 判断 | 匹配度 | 判断依据 |\n|---|---|---:|---|\n${rows.join("\n")}\n\n推荐顺序：\n${recommendations}${materials}\n\n以上仅供初步匹配，以资金方最终审批为准。`;
+}
+
 async function handleChat(request, env, origin, requestId) {
   if (!env.AGENT_API_KEY || !env.UPSTREAM_BASE_URL || !env.AGENT_MODEL) {
     return jsonResponse({ error: { code: "not_configured", message: "智能体服务尚未完成配置。" } }, 503, origin, requestId);
@@ -163,6 +190,9 @@ async function handleChat(request, env, origin, requestId) {
 
     if (!upstream.ok) {
       console.error(JSON.stringify({ event: "agent_upstream_error", requestId, status: upstream.status }));
+      if (transientStatuses.has(upstream.status)) {
+        return jsonResponse({ message: buildFallbackMessage(body.context), degraded: true, requestId }, 200, origin, requestId);
+      }
       return jsonResponse({ error: { code: `upstream_${upstream.status}`, message: errorMessageForStatus(upstream.status) } }, upstream.status === 429 ? 429 : 502, origin, requestId);
     }
 
@@ -170,14 +200,14 @@ async function handleChat(request, env, origin, requestId) {
     const message = payload?.choices?.[0]?.message?.content;
     if (typeof message !== "string" || !message.trim()) {
       console.error(JSON.stringify({ event: "agent_invalid_response", requestId }));
-      return jsonResponse({ error: { code: "invalid_upstream_response", message: "智能体返回了无法识别的内容，请重试。" } }, 502, origin, requestId);
+      return jsonResponse({ message: buildFallbackMessage(body.context), degraded: true, requestId }, 200, origin, requestId);
     }
 
     return jsonResponse({ message: message.trim(), usage: payload.usage || null, requestId }, 200, origin, requestId);
   } catch (error) {
     const timedOut = error?.name === "AbortError";
     console.error(JSON.stringify({ event: timedOut ? "agent_timeout" : "agent_fetch_failed", requestId }));
-    return jsonResponse({ error: { code: timedOut ? "timeout" : "upstream_unreachable", message: timedOut ? "智能体响应超时，请稍后重试。" : "暂时无法连接智能体服务，请稍后重试。" } }, 504, origin, requestId);
+    return jsonResponse({ message: buildFallbackMessage(body.context), degraded: true, requestId }, 200, origin, requestId);
   } finally {
     clearTimeout(timeout);
   }
