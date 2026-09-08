@@ -130,7 +130,7 @@ async function handleChat(request, env, origin, requestId) {
       ],
       stream: false,
       temperature: 0.2,
-      max_tokens: 900,
+      max_tokens: 650,
     });
     const requestOptions = {
       method: "POST",
@@ -144,19 +144,19 @@ async function handleChat(request, env, origin, requestId) {
 
     const transientStatuses = new Set([500, 502, 503, 504, 521, 522, 523, 524]);
     let upstream;
-    for (let attempt = 0; attempt < 2; attempt += 1) {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
         upstream = await fetch(upstreamUrl, requestOptions);
       } catch (error) {
-        if (attempt === 1 || controller.signal.aborted) throw error;
+        if (attempt === 2 || controller.signal.aborted) throw error;
         console.warn(JSON.stringify({ event: "agent_upstream_retry", requestId, reason: "network" }));
-        await new Promise((resolve) => setTimeout(resolve, 400));
+        await new Promise((resolve) => setTimeout(resolve, attempt === 0 ? 350 : 800));
         continue;
       }
-      if (attempt === 1 || !transientStatuses.has(upstream.status)) break;
+      if (attempt === 2 || !transientStatuses.has(upstream.status)) break;
       console.warn(JSON.stringify({ event: "agent_upstream_retry", requestId, status: upstream.status }));
       await upstream.body?.cancel();
-      await new Promise((resolve) => setTimeout(resolve, 400));
+      await new Promise((resolve) => setTimeout(resolve, attempt === 0 ? 350 : 800));
     }
 
     if (!upstream) throw new Error("upstream_unreachable");
