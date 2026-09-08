@@ -67,7 +67,7 @@ export async function requestAgentReply(messages: AgentApiMessage[], context: Ag
 
   const requestBody = JSON.stringify({ messages, context });
   let fallbackReply: { message: string; requestId?: string } | null = null;
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
     let response: Response;
     try {
       response = await fetch(`${AGENT_PROXY_URL}/chat`, {
@@ -102,8 +102,8 @@ export async function requestAgentReply(messages: AgentApiMessage[], context: Ag
     if (!payload.degraded) return { message: payload.message, requestId: payload.requestId };
 
     fallbackReply = { message: payload.message, requestId: payload.requestId };
-    if (attempt === 0) {
-      await new Promise((resolve) => window.setTimeout(resolve, 700));
+    if (attempt < 2) {
+      await new Promise((resolve) => window.setTimeout(resolve, attempt === 0 ? 800 : 1_400));
       if (signal.aborted) throw new DOMException("请求已取消", "AbortError");
     }
   }
