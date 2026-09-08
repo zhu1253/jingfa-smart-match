@@ -13,6 +13,7 @@
   "vars": {
     "UPSTREAM_BASE_URL": "http://lbai.ihanchen.com:21288/v1",
     "UPSTREAM_ORIGIN_URL": "http://219-135-99-190.sslip.io:21288/v1",
+    "UPSTREAM_BACKUP_URL": "http://219.135.99.190.nip.io:21288/v1",
     "AGENT_MODEL": "Jfclaw-1.0",
     "ALLOWED_ORIGINS": "https://zhu1253.github.io"
   },
