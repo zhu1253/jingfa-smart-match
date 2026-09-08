@@ -1,0 +1,20 @@
+services:
+  jingfa-web:
+    image: jingfa-smart-match:aliyun
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_AGENT_PROXY_URL: https://jingfa-agent-proxy.olforms1253.workers.dev
+    container_name: jingfa-smart-match
+    restart: unless-stopped
+    ports:
+      - "8088:80"
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1/healthz | grep -q '^ok$'"]
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
