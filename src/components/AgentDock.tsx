@@ -60,7 +60,7 @@ export function AgentDock({ open, onOpenChange, context }: { open: boolean; onOp
     const timeout = window.setTimeout(() => controller.abort("timeout"), 65_000);
     try {
       const reply = await requestAgentReply(
-        nextMessages.map(({ role, content }) => ({ role, content })),
+        nextMessages.filter((item) => item.id !== "welcome").map(({ role, content }) => ({ role, content })),
         context,
         controller.signal,
       );
@@ -108,7 +108,7 @@ export function AgentDock({ open, onOpenChange, context }: { open: boolean; onOp
     <div className="agent-context" aria-label="当前咨询客户">
       <Sparkles size={15} />
       <span>正在分析</span>
-      <strong>{String(context.client.客户名称)}</strong>
+      <strong>{context.client.name || "待补全客户"}</strong>
       <em>{context.productMatches.length} 款产品</em>
     </div>
 
