@@ -1,6 +1,6 @@
 const ALLOWED_METHODS = new Set(["GET", "HEAD"]);
 
-function withSecurityHeaders(response) {
+function withSecurityHeaders(response, pathname) {
   const headers = new Headers(response.headers);
   headers.delete("server");
   headers.set("x-content-type-options", "nosniff");
@@ -8,6 +8,13 @@ function withSecurityHeaders(response) {
   headers.set("referrer-policy", "strict-origin-when-cross-origin");
   headers.set("permissions-policy", "camera=(), microphone=(), geolocation=()");
   headers.set("strict-transport-security", "max-age=31536000; includeSubDomains");
+
+  const contentType = headers.get("content-type") || "";
+  if (contentType.includes("text/html")) {
+    headers.set("cache-control", "no-store");
+  } else if (pathname.startsWith("/assets/")) {
+    headers.set("cache-control", "public, max-age=31536000, immutable");
+  }
 
   return new Response(response.body, {
     status: response.status,
@@ -85,10 +92,10 @@ export default {
           status: upstream.status,
           statusText: upstream.statusText,
           headers,
-        }));
+        }), incomingUrl.pathname);
       }
 
-      return withSecurityHeaders(upstream);
+      return withSecurityHeaders(upstream, incomingUrl.pathname);
     } catch (error) {
       console.error(JSON.stringify({
         event: "origin_fetch_failed",

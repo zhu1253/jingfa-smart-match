@@ -199,23 +199,41 @@ async function handleChat(request, env, origin, requestId) {
 
     const transientStatuses = new Set([500, 502, 503, 504, 521, 522, 523, 524]);
     let upstream;
+    let payload;
+    let message;
     let usedRoute = -1;
-    const maxAttempts = upstreamBases.length;
+    const maxAttempts = Math.min(upstreamBases.length * 3, 9);
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       usedRoute = attempt % upstreamBases.length;
       const upstreamUrl = `${upstreamBases[usedRoute].replace(/\/$/, "")}/chat/completions`;
+      const retryDelayMs = Math.min(900 + attempt * 650, 3_500);
       try {
         upstream = await fetch(upstreamUrl, requestOptions);
       } catch (error) {
         if (attempt === maxAttempts - 1 || controller.signal.aborted) throw error;
         console.warn(JSON.stringify({ event: "agent_upstream_retry", requestId, reason: "network", route: usedRoute }));
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
         continue;
       }
-      if (attempt === maxAttempts - 1 || !transientStatuses.has(upstream.status)) break;
-      console.warn(JSON.stringify({ event: "agent_upstream_retry", requestId, status: upstream.status, route: usedRoute }));
-      await upstream.body?.cancel();
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      if (!upstream.ok) {
+        if (attempt === maxAttempts - 1 || !transientStatuses.has(upstream.status)) break;
+        console.warn(JSON.stringify({ event: "agent_upstream_retry", requestId, status: upstream.status, route: usedRoute }));
+        await upstream.body?.cancel();
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+        continue;
+      }
+
+      try {
+        payload = await upstream.json();
+        message = payload?.choices?.[0]?.message?.content;
+      } catch {
+        message = null;
+      }
+      if (typeof message === "string" && message.trim()) break;
+      console.warn(JSON.stringify({ event: "agent_invalid_response_retry", requestId, route: usedRoute }));
+      if (attempt < maxAttempts - 1) {
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+      }
     }
 
     if (!upstream) throw new Error("upstream_unreachable");
@@ -228,8 +246,6 @@ async function handleChat(request, env, origin, requestId) {
       return jsonResponse({ error: { code: `upstream_${upstream.status}`, message: errorMessageForStatus(upstream.status) } }, upstream.status === 429 ? 429 : 502, origin, requestId);
     }
 
-    const payload = await upstream.json();
-    const message = payload?.choices?.[0]?.message?.content;
     if (typeof message !== "string" || !message.trim()) {
       console.error(JSON.stringify({ event: "agent_invalid_response", requestId }));
       return jsonResponse({ message: buildFallbackMessage(body.context, matchingEnabled), degraded: true, requestId }, 200, origin, requestId);
