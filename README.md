@@ -29,7 +29,9 @@ pnpm dev
 
 默认本地访问地址：`http://localhost:4173/`
 
-线上访问地址：[https://zhu1253.github.io/jingfa-smart-match/](https://zhu1253.github.io/jingfa-smart-match/)
+阿里云正式入口：[https://jingfa-jfyxy.olforms1253.workers.dev/](https://jingfa-jfyxy.olforms1253.workers.dev/)
+
+GitHub Pages 备用入口：[https://zhu1253.github.io/jingfa-smart-match/](https://zhu1253.github.io/jingfa-smart-match/)
 
 ## 智能体与 Cloudflare Worker
 
@@ -38,6 +40,13 @@ pnpm dev
 ```powershell
 npx wrangler deploy --config worker/wrangler.jsonc
 npx wrangler secret put AGENT_API_KEY --config worker/wrangler.jsonc
+```
+
+阿里云站点通过独立的 `jingfa-jfyxy` Worker 提供 HTTPS 入口。源站地址仅保存在 Worker Secret 中：
+
+```powershell
+npx wrangler deploy --config site-worker/wrangler.jsonc
+npx wrangler secret put ORIGIN_BASE_URL --config site-worker/wrangler.jsonc
 ```
 
 Worker 仅允许京发智配线上页面跨域调用，并限制请求频率、消息数量、单条长度和总体积；上游错误会转换为不含服务端细节的提示。由于上游当前使用非标准 HTTP 端口，`UPSTREAM_ORIGIN_URL` 通过指向同一服务器 IP 的 DNS 名称解决 Cloudflare 自定义端口路由限制；上游 IP 变化时需要同步更新该配置。
