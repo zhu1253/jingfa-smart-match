@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CheckCircle2, CircleAlert, X } from "lucide-react";
 import { AppShell, type View } from "./components/AppShell";
-import { clients as seedClients, defaultClient, partners, products } from "./data";
+import { clients as seedClients, defaultClient, libraryDocuments, partners, products } from "./data";
 import type { ClientRecord, Partner, Product } from "./types";
 import { DashboardPage } from "./pages/DashboardPage";
 import { MatchPage } from "./pages/MatchPage";
@@ -49,7 +49,10 @@ export default function App() {
   useEffect(() => { const syncView = () => setView(readViewFromHash()); window.addEventListener("hashchange", syncView); window.addEventListener("popstate", syncView); return () => { window.removeEventListener("hashchange", syncView); window.removeEventListener("popstate", syncView); }; }, []);
 
   const selectedRecord = records.find((record) => record.id === selectedClientId) ?? records[0];
-  const agentContext = useMemo(() => buildAgentContext(selectedRecord, productItems, view), [selectedRecord, productItems, view]);
+  const agentContext = useMemo(
+    () => buildAgentContext(selectedRecord, records, productItems, partnerItems, libraryDocuments, view),
+    [selectedRecord, records, productItems, partnerItems, view],
+  );
   const notify = (message: string, tone: "success" | "error" = "success") => setToast({ message, tone });
   const navigate = useCallback((next: View) => {
     if (next === "help" && view !== "help") setHelpReturnView(view);

@@ -31,7 +31,7 @@ export function AppShell({ view, onNavigate, libraryUnlocked, agentContext, chil
     <aside className={`sidebar ${mobileOpen ? "mobile-open" : ""}`}>
       <Logo />
       <nav aria-label="主导航">{items.map((item) => { const Icon = item.icon; return <button key={item.id} className={view === item.id ? "active" : ""} onClick={() => select(item.id)} aria-current={view === item.id ? "page" : undefined} title={item.label}><Icon size={18} strokeWidth={1.8} /><span>{item.label}</span>{item.id === "library" && !libraryUnlocked ? <LockKeyhole className="nav-lock" size={13} /> : null}</button>; })}</nav>
-      <button className="sidebar-agent" onClick={openAgent} aria-expanded={agentOpen} aria-controls="agent-window"><Bot size={18} /><div><strong>智能体顾问</strong><small>已接入 · 点击咨询</small></div></button>
+      <button className="sidebar-agent" onClick={openAgent} aria-expanded={agentOpen} aria-controls="agent-window"><Bot size={18} /><div><strong>业务智能体</strong><small>通用问答 · 点击咨询</small></div></button>
       <button className="collapse-button" onClick={() => setCollapsed((value) => !value)} aria-label={collapsed ? "展开导航" : "收起导航"}><PanelLeftClose size={17} /><span>收起菜单</span></button>
     </aside>
     {mobileOpen ? <button className="mobile-backdrop" aria-label="关闭导航" onClick={() => setMobileOpen(false)} /> : null}
@@ -41,7 +41,7 @@ export function AppShell({ view, onNavigate, libraryUnlocked, agentContext, chil
     </section>
     <div className={`agent-dock ${agentOpen ? "open" : ""}`}>{agentLoaded
       ? <Suspense fallback={<button className="agent-launcher" disabled><Bot size={19} /><span>正在打开…</span></button>}><AgentDock open={agentOpen} onOpenChange={setAgentOpen} context={agentContext} /></Suspense>
-      : <button className="agent-launcher" onClick={openAgent} aria-expanded="false" aria-controls="agent-window"><Bot size={19} /><span>智能体顾问</span><i /></button>}
+      : <button className="agent-launcher" onClick={openAgent} aria-expanded="false" aria-controls="agent-window"><Bot size={19} /><span>业务智能体</span><i /></button>}
     </div>
   </div>;
 }

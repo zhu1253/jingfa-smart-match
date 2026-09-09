@@ -1,4 +1,4 @@
-import type { ClientProfile, ClientRecord, Partner, Product } from "./types";
+import type { ClientProfile, ClientRecord, LibraryDocument, Partner, Product } from "./types";
 
 const baseMaterials = [
   "营业执照",
@@ -272,6 +272,14 @@ export const partners: Partner[] = [
   { id: "winit", name: "万邑通 WINIT", type: "物流与海外仓", description: "欧美海外仓及跨境物流服务", priority: "中", city: "上海", status: "待接洽", services: ["海外仓", "跨境物流", "库存数据"] },
   { id: "szcea", name: "深圳市跨境电子商务协会", type: "协会与产业园", description: "跨境卖家批量触达与行业协同", priority: "中长期", city: "广东·深圳", status: "合作中", services: ["企业触达", "行业活动", "政策协同"] },
   { id: "amazon", name: "Amazon", type: "平台官方", description: "平台生态经营数据与融资入口", priority: "中长期", city: "全球", status: "待接洽", services: ["平台经营数据", "卖家生态", "回款入口"] },
+];
+
+export const libraryDocuments: LibraryDocument[] = [
+  { id: "ecosystem", name: "跨境金融—资金方与资产端合作清单", type: "生态清单", rules: 16, updated: "2026-08-28", summary: "资金方、资产端、支付、ERP、物流与产业园的合作优先级及建议路径。" },
+  { id: "webank", name: "微众跨境电商贷产品要素与亮点", type: "产品资料", rules: 12, updated: "2026-08-26", summary: "亚马逊卖家经营、回款、征信与店铺健康度等核心准入条件。" },
+  { id: "fusion", name: "富融出海贷与 PAOB 采购贷产品大纲对比", type: "产品对比", rules: 9, updated: "2026-08-25", summary: "香港关联主体、贸易通白名单、币种、额度和期限条件对比。" },
+  { id: "products", name: "跨境金融—产品方清单", type: "产品清单", rules: 18, updated: "2026-08-24", summary: "银行、保理和金融科技产品的额度、利率、期限与适用客群。" },
+  { id: "banks", name: "外资银行与中资银行产品清单", type: "机构清单", rules: 14, updated: "2026-08-22", summary: "汇丰、浦发、平安和中关村银行等产品信息汇总。" },
 ];
 
 export const clients: ClientRecord[] = [

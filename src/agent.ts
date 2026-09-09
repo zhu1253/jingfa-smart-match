@@ -1,5 +1,5 @@
 import { getMissingFields, runMatching } from "./matcher";
-import type { ClientRecord, Product } from "./types";
+import type { ClientProfile, ClientRecord, LibraryDocument, Partner, Product } from "./types";
 
 export type AgentContext = ReturnType<typeof buildAgentContext>;
 export type AgentApiMessage = { role: "user" | "assistant"; content: string };
@@ -13,59 +13,144 @@ type AgentApiResponse = {
 
 const AGENT_PROXY_URL = (import.meta.env.VITE_AGENT_PROXY_URL || "").replace(/\/$/, "");
 
-export function buildAgentContext(record: ClientRecord, catalog: Product[], currentView: string) {
-  const client = record.profile;
-  const results = runMatching(client, catalog);
+function serializeClientProfile(client: ClientProfile) {
+  const finiteOrNull = (value: number) => Number.isFinite(value) ? value : null;
+  return {
+    name: client.companyName || null,
+    industry: client.industry || null,
+    city: client.city || null,
+    operatingYears: finiteOrNull(client.operatingYears),
+    monthlyFlowWan: finiteOrNull(client.monthlyFlow),
+    annualSalesWan: finiteOrNull(client.annualSales),
+    annualRepaymentWan: finiteOrNull(client.annualRepayment),
+    overdueSixMonths: finiteOrNull(client.overdueSixMonths),
+    hasCurrentOverdue: client.hasCurrentOverdue,
+    hasM3Overdue: client.hasM3Overdue,
+    inquiryTwoMonths: finiteOrNull(client.inquiryTwoMonths),
+    debtRatioPercent: finiteOrNull(client.debtRatio),
+    assets: client.assets || null,
+    hasDomesticProperty: client.hasDomesticProperty,
+    platform: client.platform || null,
+    amazonAhr: finiteOrNull(client.amazonAhr),
+    refundRatePercent: finiteOrNull(client.refundRate),
+    usSalesSharePercent: finiteOrNull(client.usSalesShare),
+    fbaTurns: finiteOrNull(client.fbaTurns),
+    hasHongKongCompany: client.hasHongKongCompany,
+    hasHsbcAccount: client.hasHsbcAccount,
+    isTradelinkWhitelist: client.isTradelinkWhitelist,
+    requestedAmountWan: finiteOrNull(client.requestedAmount),
+    requestedTermMonths: finiteOrNull(client.requestedTerm),
+    purpose: client.purpose || null,
+  };
+}
+
+export function buildAgentContext(
+  selectedRecord: ClientRecord,
+  records: ClientRecord[],
+  catalog: Product[],
+  partnerCatalog: Partner[],
+  documents: LibraryDocument[],
+  currentView: string,
+) {
+  const selectedClient = selectedRecord.profile;
+  const results = runMatching(selectedClient, catalog);
   const commonMaterials = catalog.length
     ? catalog[0].materials.filter((material) => catalog.every((product) => product.materials.includes(material)))
     : [];
   const commonMaterialSet = new Set(commonMaterials);
-  const finiteOrNull = (value: number) => Number.isFinite(value) ? value : null;
+
   return {
     currentView,
-    client: {
-      name: client.companyName || null,
-      industry: client.industry || null,
-      city: client.city || null,
-      operatingYears: finiteOrNull(client.operatingYears),
-      monthlyFlowWan: finiteOrNull(client.monthlyFlow),
-      annualSalesWan: finiteOrNull(client.annualSales),
-      annualRepaymentWan: finiteOrNull(client.annualRepayment),
-      overdueSixMonths: finiteOrNull(client.overdueSixMonths),
-      hasCurrentOverdue: client.hasCurrentOverdue,
-      hasM3Overdue: client.hasM3Overdue,
-      inquiryTwoMonths: finiteOrNull(client.inquiryTwoMonths),
-      debtRatioPercent: finiteOrNull(client.debtRatio),
-      assets: client.assets || null,
-      platform: client.platform || null,
-      requestedAmountWan: finiteOrNull(client.requestedAmount),
-      requestedTermMonths: finiteOrNull(client.requestedTerm),
-      purpose: client.purpose || null,
+    selectedClientId: selectedRecord.id,
+    selectedClient: {
+      id: selectedRecord.id,
+      stage: selectedRecord.stage,
+      completenessPercent: selectedRecord.completeness,
+      owner: selectedRecord.owner,
+      updatedAt: selectedRecord.updatedAt,
+      missingFields: getMissingFields(selectedClient),
+      ...serializeClientProfile(selectedClient),
     },
-    missingFields: getMissingFields(client),
-    commonMaterials,
+    clients: records.map((record) => ({
+      id: record.id,
+      stage: record.stage,
+      completenessPercent: record.completeness,
+      owner: record.owner,
+      updatedAt: record.updatedAt,
+      missingFields: getMissingFields(record.profile),
+      ...serializeClientProfile(record.profile),
+    })),
+    products: catalog.map((product) => ({
+      id: product.id,
+      name: product.name,
+      funder: product.funder,
+      type: product.type,
+      coreFeatures: product.coreFeatures,
+      audience: product.audience,
+      amount: product.amountLabel,
+      rate: product.rateLabel,
+      term: product.termLabel,
+      currency: product.currency,
+      source: product.source,
+      materials: product.materials,
+    })),
+    partners: partnerCatalog.map((partner) => ({
+      id: partner.id,
+      name: partner.name,
+      type: partner.type,
+      description: partner.description,
+      priority: partner.priority,
+      city: partner.city,
+      status: partner.status,
+      services: partner.services,
+    })),
+    libraryDocuments: documents.map((document) => ({ ...document })),
+    knowledgeSummary: {
+      clients: records.length,
+      products: catalog.length,
+      partners: partnerCatalog.length,
+      documents: documents.length,
+    },
     productMatches: results.map((result, index) => ({
+      productId: result.product.id,
       name: result.product.name,
       funder: result.product.funder,
       type: result.product.type,
       status: result.status,
       score: result.score,
-      passes: result.passes.slice(0, index < 5 ? 4 : 2),
+      passes: result.passes,
       blocks: result.failures,
       estimate: result.estimate,
       rate: result.product.rateLabel,
       term: result.product.termLabel,
       audience: result.product.audience,
       extraMaterials: result.product.materials.filter((material) => !commonMaterialSet.has(material)),
+      recommendationOrder: index + 1,
     })),
-    approvalNotice: "所有产品均以资金方最终审批为准。",
+    commonMaterials,
+    approvalNotice: "涉及产品匹配及融资审批时，以资金方最终审批为准。",
   };
 }
 
-export async function requestAgentReply(messages: AgentApiMessage[], context: AgentContext, signal: AbortSignal) {
+export async function requestAgentReply(
+  messages: AgentApiMessage[],
+  context: AgentContext,
+  matchingEnabled: boolean,
+  signal: AbortSignal,
+) {
   if (!AGENT_PROXY_URL) throw new Error("智能体服务地址尚未配置，请联系管理员。");
 
-  const requestBody = JSON.stringify({ messages, context });
+  const { productMatches, ...knowledgeContext } = context;
+  const requestContext = {
+    ...knowledgeContext,
+    matchingMode: {
+      enabled: matchingEnabled,
+      selectedClientId: context.selectedClientId,
+      selectedClientName: context.selectedClient.name,
+    },
+    ...(matchingEnabled ? { productMatches } : {}),
+  };
+  const requestBody = JSON.stringify({ messages, context: requestContext });
   let fallbackReply: { message: string; requestId?: string } | null = null;
   for (let attempt = 0; attempt < 3; attempt += 1) {
     let response: Response;

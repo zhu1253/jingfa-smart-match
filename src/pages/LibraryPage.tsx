@@ -2,14 +2,7 @@ import { useRef, useState, type FormEvent } from "react";
 import { ArrowLeft, BookOpen, Eye, EyeOff, FileText, KeyRound, LockKeyhole, LogOut, RotateCcw, ShieldCheck } from "lucide-react";
 import { verifyLibraryPassword } from "../security";
 import { PageHeader } from "../components/ui";
-
-const documents = [
-  { id: "ecosystem", name: "跨境金融—资金方与资产端合作清单", type: "生态清单", rules: 16, updated: "2026-08-28", summary: "资金方、资产端、支付、ERP、物流与产业园的合作优先级及建议路径。" },
-  { id: "webank", name: "微众跨境电商贷产品要素与亮点", type: "产品资料", rules: 12, updated: "2026-08-26", summary: "亚马逊卖家经营、回款、征信与店铺健康度等核心准入条件。" },
-  { id: "fusion", name: "富融出海贷与 PAOB 采购贷产品大纲对比", type: "产品对比", rules: 9, updated: "2026-08-25", summary: "香港关联主体、贸易通白名单、币种、额度和期限条件对比。" },
-  { id: "products", name: "跨境金融—产品方清单", type: "产品清单", rules: 18, updated: "2026-08-24", summary: "银行、保理和金融科技产品的额度、利率、期限与适用客群。" },
-  { id: "banks", name: "外资银行与中资银行产品清单", type: "机构清单", rules: 14, updated: "2026-08-22", summary: "汇丰、浦发、平安和中关村银行等产品信息汇总。" },
-];
+import { libraryDocuments } from "../data";
 
 function LockedLibrary({ onUnlock }: { onUnlock: () => void }) {
   const [password, setPassword] = useState("");
@@ -30,7 +23,7 @@ function LockedLibrary({ onUnlock }: { onUnlock: () => void }) {
 export function LibraryPage({ unlocked, onUnlock, onLock, notify }: { unlocked: boolean; onUnlock: () => void; onLock: () => void; notify: (message: string) => void }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   if (!unlocked) return <LockedLibrary onUnlock={() => { onUnlock(); notify("管理员验证通过，资料库已解锁"); }} />;
-  const selected = documents.find((document) => document.id === selectedId);
+  const selected = libraryDocuments.find((document) => document.id === selectedId);
   if (selected) return <div className="page detail-page"><header className="document-detail-header"><button className="button quiet" onClick={() => setSelectedId(null)}><ArrowLeft size={16} />返回资料库</button><span className="document-icon"><FileText size={22} /></span><div><h1>{selected.name}</h1><p>{selected.type} · 更新于 {selected.updated}</p></div></header><section className="document-preview"><div><h2>资料摘要</h2><p>{selected.summary}</p></div><dl><div><dt>资料类型</dt><dd>{selected.type}</dd></div><div><dt>已提取规则</dt><dd>{selected.rules} 条</dd></div><div><dt>结构化状态</dt><dd>已完成</dd></div><div><dt>使用范围</dt><dd>内部业务初筛</dd></div></dl><div className="document-notice"><ShieldCheck size={17} /><p>本页展示的是已提取的业务要点。产品政策可能发生变化，使用前应复核资金方最新资料。</p></div></section></div>;
-  return <div className="page list-page"><PageHeader title="资料库" description="产品资料与生态文档的结构化索引。" /><div className="library-access-bar"><div><BookOpen size={18} /><span><strong>管理员会话已验证</strong><small>关闭当前浏览器会话后将自动锁定</small></span></div><button className="button secondary" onClick={() => { onLock(); notify("资料库已重新锁定"); }}><LogOut size={15} />退出并锁定</button></div><section className="library-list">{documents.map((document) => <button key={document.id} onClick={() => setSelectedId(document.id)}><span className="document-icon"><FileText size={20} /></span><div><strong>{document.name}</strong><p>{document.summary}</p><small>{document.type} · 更新于 {document.updated}</small></div><span><b>{document.rules}</b><small>条规则</small></span></button>)}</section></div>;
+  return <div className="page list-page"><PageHeader title="资料库" description="产品资料与生态文档的结构化索引。" /><div className="library-access-bar"><div><BookOpen size={18} /><span><strong>管理员会话已验证</strong><small>关闭当前浏览器会话后将自动锁定</small></span></div><button className="button secondary" onClick={() => { onLock(); notify("资料库已重新锁定"); }}><LogOut size={15} />退出并锁定</button></div><section className="library-list">{libraryDocuments.map((document) => <button key={document.id} onClick={() => setSelectedId(document.id)}><span className="document-icon"><FileText size={20} /></span><div><strong>{document.name}</strong><p>{document.summary}</p><small>{document.type} · 更新于 {document.updated}</small></div><span><b>{document.rules}</b><small>条规则</small></span></button>)}</section></div>;
 }

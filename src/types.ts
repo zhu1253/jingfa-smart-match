@@ -73,3 +73,12 @@ export type Partner = {
   status: "优先合作" | "合作中" | "待接洽";
   services: string[];
 };
+
+export type LibraryDocument = {
+  id: string;
+  name: string;
+  type: string;
+  rules: number;
+  updated: string;
+  summary: string;
+};
