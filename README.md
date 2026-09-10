@@ -30,27 +30,33 @@ pnpm dev
 
 默认本地访问地址：`http://localhost:4173/`
 
-阿里云正式入口：[https://jingfa-jfyxy.olforms1253.workers.dev/](https://jingfa-jfyxy.olforms1253.workers.dev/)
+阿里云正式入口：[https://jfsmartfit.xyz/](https://jfsmartfit.xyz/)
+
+Cloudflare 备用入口：[https://jingfa-jfyxy.olforms1253.workers.dev/](https://jingfa-jfyxy.olforms1253.workers.dev/)
 
 GitHub Pages 备用入口：[https://zhu1253.github.io/jingfa-smart-match/](https://zhu1253.github.io/jingfa-smart-match/)
 
-## 智能体与 Cloudflare Worker
+## 智能体代理
 
-前端只保存公开的 Worker 地址，API Key 通过 Cloudflare Worker Secret 注入，不进入浏览器构建产物和 Git 仓库。
+阿里云正式站使用同域 `/api/agent` 代理，API Key 只保存在服务器权限为 `600` 的环境变量文件中，不进入浏览器构建产物和 Git 仓库。代理服务运行在 Docker 内部网络，不对公网直接开放端口。
+
+服务端变量模板见 `server/agent.env.example`，实际文件使用 `server/agent.env` 并已被 Git 忽略。Node 入口为 `server/agent-server.mjs`，它复用 Worker 的请求校验、业务提示词、重试与降级逻辑。
+
+Cloudflare Worker 作为备用代理，API Key 通过 Worker Secret 注入：
 
 ```powershell
 npx wrangler deploy --config worker/wrangler.jsonc
 npx wrangler secret put AGENT_API_KEY --config worker/wrangler.jsonc
 ```
 
-阿里云站点通过独立的 `jingfa-jfyxy` Worker 提供 HTTPS 入口。源站地址仅保存在 Worker Secret 中：
+Cloudflare 备用入口通过独立的 `jingfa-jfyxy` Worker 提供 HTTPS。源站地址仅保存在 Worker Secret 中：
 
 ```powershell
 npx wrangler deploy --config site-worker/wrangler.jsonc
 npx wrangler secret put ORIGIN_BASE_URL --config site-worker/wrangler.jsonc
 ```
 
-Worker 仅允许京发智配线上页面跨域调用，并限制请求频率、消息数量、单条长度和总体积；上游错误会转换为不含服务端细节的提示。由于上游当前使用非标准 HTTP 端口，`UPSTREAM_ORIGIN_URL` 通过指向同一服务器 IP 的 DNS 名称解决 Cloudflare 自定义端口路由限制；上游 IP 变化时需要同步更新该配置。
+两个代理均限制请求频率、消息数量、单条长度和总体积；上游错误会转换为不含服务端细节的提示。阿里云同域代理用于改善中国大陆网络下的可达性。由于备用 Worker 的上游使用非标准 HTTP 端口，`UPSTREAM_ORIGIN_URL` 通过指向同一服务器 IP 的 DNS 名称解决 Cloudflare 自定义端口路由限制；上游 IP 变化时需要同步更新该配置。
 
 ## 安全边界
 

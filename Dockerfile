@@ -11,7 +11,7 @@ COPY index.html tsconfig.json vite.config.ts ./
 COPY public ./public
 COPY src ./src
 
-ARG VITE_AGENT_PROXY_URL=https://jingfa-agent-proxy.olforms1253.workers.dev
+ARG VITE_AGENT_PROXY_URL=/api/agent
 ENV VITE_AGENT_PROXY_URL=${VITE_AGENT_PROXY_URL}
 
 RUN pnpm build

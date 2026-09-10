@@ -5,7 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        VITE_AGENT_PROXY_URL: https://jingfa-agent-proxy.olforms1253.workers.dev
+        VITE_AGENT_PROXY_URL: /api/agent
     container_name: jingfa-smart-match
     restart: unless-stopped
     ports:

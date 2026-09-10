@@ -8,6 +8,7 @@ pnpm-debug.log*
 .dev.vars
 .dev.vars.*
 worker/.wrangler/
+server/agent.env
 
 # Impeccable local runtime artifacts
 .impeccable/config.local.json

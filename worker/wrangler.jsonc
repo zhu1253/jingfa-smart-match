@@ -15,7 +15,7 @@
     "UPSTREAM_ORIGIN_URL": "http://219-135-99-190.sslip.io:21288/v1",
     "UPSTREAM_BACKUP_URL": "http://219.135.99.190.nip.io:21288/v1",
     "AGENT_MODEL": "Jfclaw-1.0",
-    "ALLOWED_ORIGINS": "https://zhu1253.github.io,http://47.107.84.207:8088,https://jingfa-jfyxy.olforms1253.workers.dev"
+    "ALLOWED_ORIGINS": "https://jfsmartfit.xyz,https://www.jfsmartfit.xyz,https://zhu1253.github.io,http://47.107.84.207:8088,https://jingfa-jfyxy.olforms1253.workers.dev"
   },
   "ratelimits": [
     {
