@@ -1,0 +1,46 @@
+name: jingfa-database
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: jingfa-mysql
+    restart: unless-stopped
+    env_file:
+      - ./mysql.env
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --default-time-zone=+00:00
+      - --skip-name-resolve=ON
+      - --max-connections=60
+      - --innodb-buffer-pool-size=268435456
+      - --innodb-redo-log-capacity=268435456
+      - --slow-query-log=ON
+      - --long-query-time=1
+    volumes:
+      - jingfa_mysql_data:/var/lib/mysql
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    networks:
+      - jingfa_internal
+    expose:
+      - "3306"
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=$$MYSQL_PASSWORD mysqladmin ping -h 127.0.0.1 -u$$MYSQL_USER --silent"]
+      interval: 15s
+      timeout: 5s
+      start_period: 40s
+      retries: 8
+    mem_limit: 640m
+    cpus: 1.0
+    stop_grace_period: 1m
+    security_opt:
+      - no-new-privileges:true
+
+networks:
+  jingfa_internal:
+    external: true
+    name: jingfa_internal
+
+volumes:
+  jingfa_mysql_data:
+    name: jingfa_mysql_data

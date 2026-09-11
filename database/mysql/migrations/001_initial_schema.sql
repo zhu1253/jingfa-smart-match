@@ -1,0 +1,512 @@
+CREATE DATABASE IF NOT EXISTS jingfa_smartfit
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_0900_ai_ci;
+
+USE jingfa_smartfit;
+
+CREATE TABLE IF NOT EXISTS schema_migrations (
+  version VARCHAR(64) NOT NULL,
+  description VARCHAR(255) NOT NULL,
+  applied_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (version)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS workspaces (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  public_id CHAR(36) NOT NULL,
+  name VARCHAR(200) NOT NULL,
+  slug VARCHAR(100) NOT NULL,
+  status VARCHAR(24) NOT NULL DEFAULT 'active',
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_workspaces_public_id (public_id),
+  UNIQUE KEY uq_workspaces_slug (slug),
+  CONSTRAINT chk_workspaces_status CHECK (status IN ('active', 'disabled'))
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS app_users (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  workspace_id BIGINT UNSIGNED NOT NULL,
+  public_id CHAR(36) NOT NULL,
+  username VARCHAR(100) NOT NULL,
+  display_name VARCHAR(100) NOT NULL,
+  password_hash VARCHAR(255) NULL,
+  role_code VARCHAR(32) NOT NULL DEFAULT 'advisor',
+  status VARCHAR(24) NOT NULL DEFAULT 'active',
+  last_login_at DATETIME(3) NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_app_users_public_id (public_id),
+  UNIQUE KEY uq_app_users_workspace_username (workspace_id, username),
+  KEY idx_app_users_workspace_status_role (workspace_id, status, role_code),
+  CONSTRAINT fk_app_users_workspace FOREIGN KEY (workspace_id) REFERENCES workspaces (id) ON DELETE RESTRICT,
+  CONSTRAINT chk_app_users_status CHECK (status IN ('active', 'disabled'))
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS clients (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  workspace_id BIGINT UNSIGNED NOT NULL,
+  public_id CHAR(36) NOT NULL,
+  legacy_key VARCHAR(64) NULL,
+  company_name VARCHAR(200) NOT NULL,
+  industry VARCHAR(100) NULL,
+  city VARCHAR(100) NULL,
+  platform VARCHAR(100) NULL,
+  stage VARCHAR(32) NOT NULL DEFAULT '待补全',
+  owner_user_id BIGINT UNSIGNED NULL,
+  source_channel VARCHAR(100) NULL,
+  archived_at DATETIME(3) NULL,
+  deleted_at DATETIME(3) NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_clients_public_id (public_id),
+  UNIQUE KEY uq_clients_workspace_legacy (workspace_id, legacy_key),
+  KEY idx_clients_workspace_name (workspace_id, company_name),
+  KEY idx_clients_workspace_stage_updated (workspace_id, stage, updated_at),
+  KEY idx_clients_owner_updated (owner_user_id, updated_at),
+  KEY idx_clients_workspace_industry_city (workspace_id, industry, city),
+  KEY idx_clients_deleted (workspace_id, deleted_at),
+  CONSTRAINT fk_clients_workspace FOREIGN KEY (workspace_id) REFERENCES workspaces (id) ON DELETE RESTRICT,
+  CONSTRAINT fk_clients_owner FOREIGN KEY (owner_user_id) REFERENCES app_users (id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS client_snapshots (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  client_id BIGINT UNSIGNED NOT NULL,
+  revision_no INT UNSIGNED NOT NULL,
+  operating_years DECIMAL(6,2) NULL,
+  currency CHAR(3) NOT NULL DEFAULT 'CNY',
+  monthly_flow_amount DECIMAL(20,2) NULL,
+  annual_sales_amount DECIMAL(20,2) NULL,
+  annual_repayment_amount DECIMAL(20,2) NULL,
+  overdue_six_months INT UNSIGNED NULL,
+  has_current_overdue BOOLEAN NULL,
+  has_m3_overdue BOOLEAN NULL,
+  inquiry_two_months INT UNSIGNED NULL,
+  debt_ratio_percent DECIMAL(5,2) NULL,
+  assets TEXT NULL,
+  has_domestic_property BOOLEAN NULL,
+  amazon_ahr DECIMAL(10,2) NULL,
+  refund_rate_percent DECIMAL(5,2) NULL,
+  us_sales_share_percent DECIMAL(5,2) NULL,
+  fba_turns DECIMAL(8,2) NULL,
+  has_hong_kong_company BOOLEAN NULL,
+  has_hsbc_account BOOLEAN NULL,
+  is_tradelink_whitelist BOOLEAN NULL,
+  requested_amount DECIMAL(20,2) NULL,
+  requested_term_months SMALLINT UNSIGNED NULL,
+  purpose VARCHAR(500) NULL,
+  completeness_percent TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  source VARCHAR(100) NULL,
+  created_by BIGINT UNSIGNED NULL,
+  captured_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_client_snapshots_revision (client_id, revision_no),
+  KEY idx_client_snapshots_latest (client_id, captured_at, id),
+  KEY idx_client_snapshots_creator (created_by),
+  CONSTRAINT fk_client_snapshots_client FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE RESTRICT,
+  CONSTRAINT fk_client_snapshots_creator FOREIGN KEY (created_by) REFERENCES app_users (id) ON DELETE SET NULL,
+  CONSTRAINT chk_client_snapshots_completeness CHECK (completeness_percent <= 100),
+  CONSTRAINT chk_client_snapshots_debt_ratio CHECK (debt_ratio_percent IS NULL OR debt_ratio_percent BETWEEN 0 AND 100),
+  CONSTRAINT chk_client_snapshots_refund_rate CHECK (refund_rate_percent IS NULL OR refund_rate_percent BETWEEN 0 AND 100),
+  CONSTRAINT chk_client_snapshots_us_share CHECK (us_sales_share_percent IS NULL OR us_sales_share_percent BETWEEN 0 AND 100)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS partners (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  workspace_id BIGINT UNSIGNED NOT NULL,
+  public_id CHAR(36) NOT NULL,
+  legacy_key VARCHAR(64) NULL,
+  name VARCHAR(200) NOT NULL,
+  type VARCHAR(100) NOT NULL,
+  description TEXT NULL,
+  priority_code VARCHAR(32) NULL,
+  city VARCHAR(100) NULL,
+  status VARCHAR(32) NOT NULL DEFAULT '待接洽',
+  services JSON NULL,
+  contact_info JSON NULL,
+  is_public BOOLEAN NOT NULL DEFAULT TRUE,
+  deleted_at DATETIME(3) NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_partners_public_id (public_id),
+  UNIQUE KEY uq_partners_workspace_legacy (workspace_id, legacy_key),
+  UNIQUE KEY uq_partners_workspace_name (workspace_id, name),
+  KEY idx_partners_workspace_type_status (workspace_id, type, status),
+  KEY idx_partners_workspace_priority (workspace_id, priority_code),
+  KEY idx_partners_deleted (workspace_id, deleted_at),
+  CONSTRAINT fk_partners_workspace FOREIGN KEY (workspace_id) REFERENCES workspaces (id) ON DELETE RESTRICT
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS products (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  workspace_id BIGINT UNSIGNED NOT NULL,
+  public_id CHAR(36) NOT NULL,
+  legacy_key VARCHAR(64) NULL,
+  funder_partner_id BIGINT UNSIGNED NULL,
+  name VARCHAR(200) NOT NULL,
+  funder_name VARCHAR(200) NOT NULL,
+  product_type VARCHAR(100) NOT NULL,
+  status VARCHAR(24) NOT NULL DEFAULT 'draft',
+  deleted_at DATETIME(3) NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_products_public_id (public_id),
+  UNIQUE KEY uq_products_workspace_legacy (workspace_id, legacy_key),
+  UNIQUE KEY uq_products_workspace_name_funder (workspace_id, name, funder_name),
+  KEY idx_products_workspace_type_status (workspace_id, product_type, status),
+  KEY idx_products_funder (funder_partner_id),
+  KEY idx_products_deleted (workspace_id, deleted_at),
+  CONSTRAINT fk_products_workspace FOREIGN KEY (workspace_id) REFERENCES workspaces (id) ON DELETE RESTRICT,
+  CONSTRAINT fk_products_funder FOREIGN KEY (funder_partner_id) REFERENCES partners (id) ON DELETE SET NULL,
+  CONSTRAINT chk_products_status CHECK (status IN ('draft', 'active', 'inactive', 'archived'))
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS product_versions (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  product_id BIGINT UNSIGNED NOT NULL,
+  version_no INT UNSIGNED NOT NULL,
+  publish_status VARCHAR(24) NOT NULL DEFAULT 'draft',
+  currency CHAR(3) NOT NULL DEFAULT 'CNY',
+  amount_min DECIMAL(20,2) NULL,
+  amount_max DECIMAL(20,2) NULL,
+  annual_rate_min_percent DECIMAL(8,4) NULL,
+  annual_rate_max_percent DECIMAL(8,4) NULL,
+  term_min_months SMALLINT UNSIGNED NULL,
+  term_max_months SMALLINT UNSIGNED NULL,
+  amount_label VARCHAR(100) NULL,
+  rate_label VARCHAR(100) NULL,
+  term_label VARCHAR(100) NULL,
+  audience TEXT NULL,
+  core_features JSON NULL,
+  materials JSON NULL,
+  source TEXT NULL,
+  effective_from DATE NULL,
+  effective_to DATE NULL,
+  created_by BIGINT UNSIGNED NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_product_versions_number (product_id, version_no),
+  KEY idx_product_versions_publish_effective (product_id, publish_status, effective_from, effective_to),
+  KEY idx_product_versions_creator (created_by),
+  CONSTRAINT fk_product_versions_product FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE RESTRICT,
+  CONSTRAINT fk_product_versions_creator FOREIGN KEY (created_by) REFERENCES app_users (id) ON DELETE SET NULL,
+  CONSTRAINT chk_product_versions_publish_status CHECK (publish_status IN ('draft', 'published', 'retired')),
+  CONSTRAINT chk_product_versions_amount_range CHECK (amount_min IS NULL OR amount_max IS NULL OR amount_min <= amount_max),
+  CONSTRAINT chk_product_versions_rate_range CHECK (annual_rate_min_percent IS NULL OR annual_rate_max_percent IS NULL OR annual_rate_min_percent <= annual_rate_max_percent),
+  CONSTRAINT chk_product_versions_term_range CHECK (term_min_months IS NULL OR term_max_months IS NULL OR term_min_months <= term_max_months)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS product_rules (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  product_version_id BIGINT UNSIGNED NOT NULL,
+  field_key VARCHAR(100) NOT NULL,
+  operator_code VARCHAR(32) NOT NULL,
+  compare_value JSON NOT NULL,
+  unit VARCHAR(32) NULL,
+  is_hard_block BOOLEAN NOT NULL DEFAULT TRUE,
+  weight DECIMAL(6,3) NOT NULL DEFAULT 1.000,
+  pass_message VARCHAR(500) NULL,
+  fail_message VARCHAR(500) NOT NULL,
+  sort_order SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_product_rules_order (product_version_id, sort_order),
+  KEY idx_product_rules_lookup (product_version_id, enabled, field_key),
+  CONSTRAINT fk_product_rules_version FOREIGN KEY (product_version_id) REFERENCES product_versions (id) ON DELETE CASCADE,
+  CONSTRAINT chk_product_rules_weight CHECK (weight >= 0)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS knowledge_documents (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  workspace_id BIGINT UNSIGNED NOT NULL,
+  public_id CHAR(36) NOT NULL,
+  legacy_key VARCHAR(64) NULL,
+  title VARCHAR(255) NOT NULL,
+  document_type VARCHAR(100) NOT NULL,
+  summary TEXT NULL,
+  source VARCHAR(500) NULL,
+  access_level VARCHAR(24) NOT NULL DEFAULT 'internal',
+  status VARCHAR(24) NOT NULL DEFAULT 'draft',
+  current_version_no INT UNSIGNED NOT NULL DEFAULT 0,
+  deleted_at DATETIME(3) NULL,
+  created_by BIGINT UNSIGNED NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_knowledge_documents_public_id (public_id),
+  UNIQUE KEY uq_knowledge_documents_workspace_legacy (workspace_id, legacy_key),
+  KEY idx_knowledge_documents_workspace_type_status (workspace_id, document_type, status),
+  KEY idx_knowledge_documents_workspace_updated (workspace_id, updated_at),
+  KEY idx_knowledge_documents_deleted (workspace_id, deleted_at),
+  CONSTRAINT fk_knowledge_documents_workspace FOREIGN KEY (workspace_id) REFERENCES workspaces (id) ON DELETE RESTRICT,
+  CONSTRAINT fk_knowledge_documents_creator FOREIGN KEY (created_by) REFERENCES app_users (id) ON DELETE SET NULL,
+  CONSTRAINT chk_knowledge_documents_access CHECK (access_level IN ('public', 'internal', 'restricted')),
+  CONSTRAINT chk_knowledge_documents_status CHECK (status IN ('draft', 'processing', 'active', 'failed', 'archived'))
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS knowledge_document_versions (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  workspace_id BIGINT UNSIGNED NOT NULL,
+  document_id BIGINT UNSIGNED NOT NULL,
+  version_no INT UNSIGNED NOT NULL,
+  storage_provider VARCHAR(32) NOT NULL DEFAULT 'local',
+  storage_key VARCHAR(512) NULL,
+  original_filename VARCHAR(255) NULL,
+  mime_type VARCHAR(150) NULL,
+  file_size_bytes BIGINT UNSIGNED NULL,
+  checksum_sha256 CHAR(64) NULL,
+  extracted_text LONGTEXT NULL,
+  extraction_metadata JSON NULL,
+  parse_status VARCHAR(24) NOT NULL DEFAULT 'pending',
+  effective_from DATE NULL,
+  effective_to DATE NULL,
+  created_by BIGINT UNSIGNED NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_knowledge_document_versions_number (document_id, version_no),
+  UNIQUE KEY uq_knowledge_document_versions_checksum (workspace_id, checksum_sha256),
+  UNIQUE KEY uq_knowledge_document_versions_storage (storage_provider, storage_key),
+  KEY idx_knowledge_document_versions_created (document_id, created_at),
+  KEY idx_knowledge_document_versions_parse_status (workspace_id, parse_status, created_at),
+  KEY idx_knowledge_document_versions_creator (created_by),
+  CONSTRAINT fk_knowledge_document_versions_workspace FOREIGN KEY (workspace_id) REFERENCES workspaces (id) ON DELETE RESTRICT,
+  CONSTRAINT fk_knowledge_document_versions_document FOREIGN KEY (document_id) REFERENCES knowledge_documents (id) ON DELETE RESTRICT,
+  CONSTRAINT fk_knowledge_document_versions_creator FOREIGN KEY (created_by) REFERENCES app_users (id) ON DELETE SET NULL,
+  CONSTRAINT chk_knowledge_document_versions_parse_status CHECK (parse_status IN ('pending', 'processing', 'completed', 'failed'))
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS knowledge_chunks (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  document_version_id BIGINT UNSIGNED NOT NULL,
+  sequence_no INT UNSIGNED NOT NULL,
+  section_title VARCHAR(500) NULL,
+  page_from INT UNSIGNED NULL,
+  page_to INT UNSIGNED NULL,
+  content MEDIUMTEXT NOT NULL,
+  token_count INT UNSIGNED NULL,
+  vector_index_ref VARCHAR(255) NULL,
+  metadata_json JSON NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_knowledge_chunks_sequence (document_version_id, sequence_no),
+  FULLTEXT KEY ft_knowledge_chunks_content (section_title, content) WITH PARSER ngram,
+  CONSTRAINT fk_knowledge_chunks_version FOREIGN KEY (document_version_id) REFERENCES knowledge_document_versions (id) ON DELETE CASCADE,
+  CONSTRAINT chk_knowledge_chunks_page_range CHECK (page_from IS NULL OR page_to IS NULL OR page_from <= page_to)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS document_links (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  document_id BIGINT UNSIGNED NOT NULL,
+  client_id BIGINT UNSIGNED NULL,
+  product_id BIGINT UNSIGNED NULL,
+  partner_id BIGINT UNSIGNED NULL,
+  relation_type VARCHAR(32) NOT NULL DEFAULT 'reference',
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  KEY idx_document_links_document (document_id),
+  KEY idx_document_links_client (client_id, document_id),
+  KEY idx_document_links_product (product_id, document_id),
+  KEY idx_document_links_partner (partner_id, document_id),
+  CONSTRAINT fk_document_links_document FOREIGN KEY (document_id) REFERENCES knowledge_documents (id) ON DELETE CASCADE,
+  CONSTRAINT fk_document_links_client FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE,
+  CONSTRAINT fk_document_links_product FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE,
+  CONSTRAINT fk_document_links_partner FOREIGN KEY (partner_id) REFERENCES partners (id) ON DELETE CASCADE,
+  CONSTRAINT chk_document_links_single_target CHECK ((client_id IS NOT NULL) + (product_id IS NOT NULL) + (partner_id IS NOT NULL) = 1)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS knowledge_ingestion_jobs (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  document_version_id BIGINT UNSIGNED NOT NULL,
+  status VARCHAR(24) NOT NULL DEFAULT 'pending',
+  attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  error_code VARCHAR(100) NULL,
+  error_message VARCHAR(1000) NULL,
+  started_at DATETIME(3) NULL,
+  finished_at DATETIME(3) NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  KEY idx_knowledge_ingestion_jobs_queue (status, created_at),
+  KEY idx_knowledge_ingestion_jobs_document (document_version_id),
+  CONSTRAINT fk_knowledge_ingestion_jobs_version FOREIGN KEY (document_version_id) REFERENCES knowledge_document_versions (id) ON DELETE CASCADE,
+  CONSTRAINT chk_knowledge_ingestion_jobs_status CHECK (status IN ('pending', 'processing', 'completed', 'failed'))
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS skills (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  workspace_id BIGINT UNSIGNED NOT NULL,
+  public_id CHAR(36) NOT NULL,
+  code VARCHAR(100) NOT NULL,
+  display_name VARCHAR(200) NOT NULL,
+  description TEXT NULL,
+  status VARCHAR(24) NOT NULL DEFAULT 'draft',
+  current_version_no INT UNSIGNED NOT NULL DEFAULT 0,
+  deleted_at DATETIME(3) NULL,
+  created_by BIGINT UNSIGNED NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_skills_public_id (public_id),
+  UNIQUE KEY uq_skills_workspace_code (workspace_id, code),
+  KEY idx_skills_workspace_status_updated (workspace_id, status, updated_at),
+  KEY idx_skills_deleted (workspace_id, deleted_at),
+  CONSTRAINT fk_skills_workspace FOREIGN KEY (workspace_id) REFERENCES workspaces (id) ON DELETE RESTRICT,
+  CONSTRAINT fk_skills_creator FOREIGN KEY (created_by) REFERENCES app_users (id) ON DELETE SET NULL,
+  CONSTRAINT chk_skills_status CHECK (status IN ('draft', 'active', 'inactive', 'archived'))
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS skill_versions (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  skill_id BIGINT UNSIGNED NOT NULL,
+  version_no INT UNSIGNED NOT NULL,
+  publish_status VARCHAR(24) NOT NULL DEFAULT 'draft',
+  instructions LONGTEXT NOT NULL,
+  trigger_config JSON NULL,
+  tool_policy JSON NULL,
+  checksum_sha256 CHAR(64) NOT NULL,
+  change_note VARCHAR(1000) NULL,
+  created_by BIGINT UNSIGNED NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_skill_versions_number (skill_id, version_no),
+  KEY idx_skill_versions_publish (skill_id, publish_status, created_at),
+  KEY idx_skill_versions_creator (created_by),
+  CONSTRAINT fk_skill_versions_skill FOREIGN KEY (skill_id) REFERENCES skills (id) ON DELETE RESTRICT,
+  CONSTRAINT fk_skill_versions_creator FOREIGN KEY (created_by) REFERENCES app_users (id) ON DELETE SET NULL,
+  CONSTRAINT chk_skill_versions_publish_status CHECK (publish_status IN ('draft', 'published', 'retired'))
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS skill_document_bindings (
+  skill_version_id BIGINT UNSIGNED NOT NULL,
+  document_id BIGINT UNSIGNED NOT NULL,
+  document_version_id BIGINT UNSIGNED NULL,
+  follow_latest BOOLEAN NOT NULL DEFAULT TRUE,
+  relation_type VARCHAR(32) NOT NULL DEFAULT 'reference',
+  sort_order SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (skill_version_id, document_id),
+  KEY idx_skill_document_bindings_document (document_id),
+  KEY idx_skill_document_bindings_version (document_version_id),
+  CONSTRAINT fk_skill_document_bindings_skill_version FOREIGN KEY (skill_version_id) REFERENCES skill_versions (id) ON DELETE CASCADE,
+  CONSTRAINT fk_skill_document_bindings_document FOREIGN KEY (document_id) REFERENCES knowledge_documents (id) ON DELETE CASCADE,
+  CONSTRAINT fk_skill_document_bindings_document_version FOREIGN KEY (document_version_id) REFERENCES knowledge_document_versions (id) ON DELETE RESTRICT,
+  CONSTRAINT chk_skill_document_bindings_mode CHECK ((follow_latest = TRUE AND document_version_id IS NULL) OR (follow_latest = FALSE AND document_version_id IS NOT NULL))
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS agent_conversations (
+  id CHAR(36) NOT NULL,
+  workspace_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NULL,
+  client_id BIGINT UNSIGNED NULL,
+  title VARCHAR(255) NULL,
+  matching_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+  model_name VARCHAR(100) NULL,
+  status VARCHAR(24) NOT NULL DEFAULT 'active',
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  KEY idx_agent_conversations_workspace_updated (workspace_id, updated_at),
+  KEY idx_agent_conversations_user_updated (user_id, updated_at),
+  KEY idx_agent_conversations_client_updated (client_id, updated_at),
+  CONSTRAINT fk_agent_conversations_workspace FOREIGN KEY (workspace_id) REFERENCES workspaces (id) ON DELETE RESTRICT,
+  CONSTRAINT fk_agent_conversations_user FOREIGN KEY (user_id) REFERENCES app_users (id) ON DELETE SET NULL,
+  CONSTRAINT fk_agent_conversations_client FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE SET NULL,
+  CONSTRAINT chk_agent_conversations_status CHECK (status IN ('active', 'archived'))
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS agent_messages (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  workspace_id BIGINT UNSIGNED NOT NULL,
+  conversation_id CHAR(36) NOT NULL,
+  role_code VARCHAR(24) NOT NULL,
+  content MEDIUMTEXT NOT NULL,
+  request_id VARCHAR(100) NULL,
+  model_name VARCHAR(100) NULL,
+  latency_ms INT UNSIGNED NULL,
+  degraded BOOLEAN NOT NULL DEFAULT FALSE,
+  error_code VARCHAR(100) NULL,
+  prompt_tokens INT UNSIGNED NULL,
+  completion_tokens INT UNSIGNED NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_agent_messages_request (workspace_id, request_id),
+  KEY idx_agent_messages_conversation_created (conversation_id, created_at, id),
+  CONSTRAINT fk_agent_messages_workspace FOREIGN KEY (workspace_id) REFERENCES workspaces (id) ON DELETE RESTRICT,
+  CONSTRAINT fk_agent_messages_conversation FOREIGN KEY (conversation_id) REFERENCES agent_conversations (id) ON DELETE CASCADE,
+  CONSTRAINT chk_agent_messages_role CHECK (role_code IN ('system', 'user', 'assistant', 'tool'))
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS match_runs (
+  id CHAR(36) NOT NULL,
+  workspace_id BIGINT UNSIGNED NOT NULL,
+  client_id BIGINT UNSIGNED NOT NULL,
+  client_snapshot_id BIGINT UNSIGNED NOT NULL,
+  requested_by BIGINT UNSIGNED NULL,
+  rule_set_hash CHAR(64) NOT NULL,
+  status VARCHAR(24) NOT NULL DEFAULT 'completed',
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  KEY idx_match_runs_workspace_created (workspace_id, created_at),
+  KEY idx_match_runs_client_created (client_id, created_at),
+  KEY idx_match_runs_snapshot (client_snapshot_id),
+  CONSTRAINT fk_match_runs_workspace FOREIGN KEY (workspace_id) REFERENCES workspaces (id) ON DELETE RESTRICT,
+  CONSTRAINT fk_match_runs_client FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE RESTRICT,
+  CONSTRAINT fk_match_runs_snapshot FOREIGN KEY (client_snapshot_id) REFERENCES client_snapshots (id) ON DELETE RESTRICT,
+  CONSTRAINT fk_match_runs_requester FOREIGN KEY (requested_by) REFERENCES app_users (id) ON DELETE SET NULL,
+  CONSTRAINT chk_match_runs_status CHECK (status IN ('processing', 'completed', 'failed'))
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS match_results (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  match_run_id CHAR(36) NOT NULL,
+  product_version_id BIGINT UNSIGNED NOT NULL,
+  result_status VARCHAR(24) NOT NULL,
+  score_percent DECIMAL(5,2) NOT NULL,
+  recommendation_order SMALLINT UNSIGNED NULL,
+  estimated_amount JSON NULL,
+  passed_items JSON NULL,
+  blocked_items JSON NULL,
+  notes TEXT NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_match_results_product (match_run_id, product_version_id),
+  KEY idx_match_results_ranking (match_run_id, score_percent, recommendation_order),
+  CONSTRAINT fk_match_results_run FOREIGN KEY (match_run_id) REFERENCES match_runs (id) ON DELETE CASCADE,
+  CONSTRAINT fk_match_results_product_version FOREIGN KEY (product_version_id) REFERENCES product_versions (id) ON DELETE RESTRICT,
+  CONSTRAINT chk_match_results_status CHECK (result_status IN ('可做', '不建议', '待补充')),
+  CONSTRAINT chk_match_results_score CHECK (score_percent BETWEEN 0 AND 100)
+) ENGINE=InnoDB;
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  workspace_id BIGINT UNSIGNED NOT NULL,
+  actor_user_id BIGINT UNSIGNED NULL,
+  action_code VARCHAR(100) NOT NULL,
+  entity_type VARCHAR(100) NOT NULL,
+  entity_id VARCHAR(100) NULL,
+  details_json JSON NULL,
+  ip_address VARCHAR(45) NULL,
+  created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  KEY idx_audit_logs_workspace_entity (workspace_id, entity_type, entity_id, created_at),
+  KEY idx_audit_logs_actor_created (actor_user_id, created_at),
+  KEY idx_audit_logs_workspace_created (workspace_id, created_at),
+  CONSTRAINT fk_audit_logs_workspace FOREIGN KEY (workspace_id) REFERENCES workspaces (id) ON DELETE RESTRICT,
+  CONSTRAINT fk_audit_logs_actor FOREIGN KEY (actor_user_id) REFERENCES app_users (id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+INSERT INTO workspaces (public_id, name, slug, status)
+VALUES (UUID(), '京发智配', 'jingfa-smartfit', 'active')
+ON DUPLICATE KEY UPDATE name = '京发智配', status = 'active';
+
+INSERT INTO schema_migrations (version, description)
+VALUES ('001', 'Initial versioned business, knowledge, Skill, matching and audit schema')
+ON DUPLICATE KEY UPDATE description = 'Initial versioned business, knowledge, Skill, matching and audit schema';

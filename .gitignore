@@ -9,6 +9,8 @@ pnpm-debug.log*
 .dev.vars.*
 worker/.wrangler/
 server/agent.env
+database/mysql/mysql.env
+database/mysql/backups/
 
 # Impeccable local runtime artifacts
 .impeccable/config.local.json
