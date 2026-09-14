@@ -38,6 +38,18 @@ export function runMatching(client: ClientProfile, productCatalog: Product[] = p
   return productCatalog
     .map((product) => {
       const { passes, failures } = product.evaluate(client);
+      if (!product.matchingReady) {
+        return {
+          product,
+          status: "不建议",
+          score: 0,
+          passes,
+          failures: ["资料不足，需人工复核", product.verificationNote, ...failures].filter(
+            (reason, index, reasons) => Boolean(reason) && reasons.indexOf(reason) === index,
+          ),
+          estimate: "资料不足，待人工核额",
+        } satisfies MatchResult;
+      }
       const baseline = baseFit[product.id] ?? 75;
       const score = failures.length === 0 ? baseline : Math.max(35, baseline - failures.length * 18);
       return {

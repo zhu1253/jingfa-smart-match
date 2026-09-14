@@ -92,6 +92,10 @@ export function buildAgentContext(
       term: product.termLabel,
       currency: product.currency,
       source: product.source,
+      sourceStatus: product.sourceStatus,
+      matchingReady: product.matchingReady,
+      verificationNote: product.verificationNote,
+      admissionRules: product.admissionRules ?? [],
       materials: product.materials,
     })),
     partners: partnerCatalog.map((partner) => ({
@@ -118,13 +122,17 @@ export function buildAgentContext(
       type: result.product.type,
       status: result.status,
       score: result.score,
+      matchingReady: result.product.matchingReady,
+      sourceStatus: result.product.sourceStatus,
       passes: result.passes,
       blocks: result.failures,
       estimate: result.estimate,
       rate: result.product.rateLabel,
       term: result.product.termLabel,
       audience: result.product.audience,
-      extraMaterials: result.product.materials.filter((material) => !commonMaterialSet.has(material)),
+      extraMaterials: result.status === "可做"
+        ? result.product.materials.filter((material) => !commonMaterialSet.has(material))
+        : [],
       recommendationOrder: index + 1,
     })),
     commonMaterials,
@@ -140,9 +148,10 @@ export async function requestAgentReply(
 ) {
   if (!AGENT_PROXY_URL) throw new Error("智能体服务地址尚未配置，请联系管理员。");
 
-  const { productMatches, ...knowledgeContext } = context;
+  const { productMatches, products, ...knowledgeContext } = context;
   const requestContext = {
     ...knowledgeContext,
+    products: matchingEnabled ? [] : products,
     matchingMode: {
       enabled: matchingEnabled,
       selectedClientId: context.selectedClientId,

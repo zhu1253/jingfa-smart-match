@@ -297,12 +297,18 @@ main { min-height: calc(100vh - 68px); }
 
 .list-toolbar { min-height: 58px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 9px 9px 0 0; background: #fff; }
 .list-toolbar > span { color: var(--muted); font-size: 11px; }
+.product-catalog-toolbar { flex-wrap: wrap; }
+.product-catalog-toolbar .search-control { flex: 1 1 300px; }
+.catalog-state { display: inline-flex; align-items: center; width: fit-content; min-height: 23px; margin-bottom: 7px; padding: 0 8px; border-radius: 999px; font-size: 10px; font-weight: 750; letter-spacing: .02em; }
+.catalog-state.ready { color: #08745f; background: #e9f8f3; border: 1px solid #b8eadb; }
+.catalog-state.review { color: #9a5b10; background: #fff6e8; border: 1px solid #f1d9ad; }
 .search-control { width: min(420px, 100%); height: 36px; display: flex; align-items: center; gap: 8px; padding: 0 11px; color: var(--subtle); border: 1px solid var(--line-strong); border-radius: 7px; background: #fff; }
 .search-control:focus-within { border-color: var(--blue-600); box-shadow: 0 0 0 3px rgba(23,104,229,.1); }
 .search-control input { width: 100%; border: 0; color: var(--text); background: transparent; font-size: 12px; }
 .list-page > .data-table { border-radius: 0 0 9px 9px; border-top: 0; }
 .client-management-table .table-head, .client-management-table .table-row { grid-template-columns: minmax(170px,1.3fr) minmax(130px,1fr) 135px 100px 92px 115px 80px; }
 .product-management-table .table-head, .product-management-table .table-row { grid-template-columns: minmax(180px,1.4fr) minmax(130px,1fr) 125px 110px 100px 80px 80px; }
+.product-management-table .table-row > span:not(.entity-name):not(.row-action) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .entity-name { display: flex; align-items: center; gap: 9px; }
 .entity-name > i { width: 30px; height: 30px; }
 .completion-cell { display: grid; gap: 6px; }
@@ -666,6 +672,7 @@ main { min-height: calc(100vh - 68px); }
   .result-actions .button { padding-inline: 8px; }
   .result-tabs > span { display: none; }
   .list-toolbar { align-items: stretch; flex-direction: column; }
+  .product-catalog-toolbar .search-control { flex: none; width: 100%; }
   .detail-page-header { display: flex; align-items: stretch; flex-direction: column; }
   .detail-page-header > div { align-items: flex-start; }
   .entity-summary { align-items: stretch; flex-direction: column; padding: 19px; }

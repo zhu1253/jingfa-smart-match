@@ -5,6 +5,8 @@ dist/
 npm-debug.log*
 pnpm-debug.log*
 *.tsbuildinfo
+__pycache__/
+*.pyc
 .dev.vars
 .dev.vars.*
 worker/.wrangler/

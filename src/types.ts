@@ -1,4 +1,5 @@
 export type ProductStatus = "可做" | "不建议";
+export type ProductSourceStatus = "已核验" | "待人工复核" | "方案资料";
 
 export type ClientProfile = {
   companyName: string;
@@ -40,6 +41,10 @@ export type Product = {
   termLabel: string;
   currency: string;
   source: string;
+  sourceStatus: ProductSourceStatus;
+  matchingReady: boolean;
+  verificationNote: string;
+  admissionRules?: string[];
   materials: string[];
   estimate: (client: ClientProfile) => string;
   evaluate: (client: ClientProfile) => { passes: string[]; failures: string[] };
@@ -81,4 +86,7 @@ export type LibraryDocument = {
   rules: number;
   updated: string;
   summary: string;
+  accessLevel?: "公开资料" | "内部资料";
+  verificationStatus?: "已结构化" | "待人工复核";
+  sourceCount?: number;
 };

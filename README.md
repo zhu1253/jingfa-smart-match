@@ -8,7 +8,8 @@
 - 工作台支持切换不同客户，并同步更新客户画像与产品匹配结果
 - 渠道方一次性录入客户资料
 - 缺失项集中提示，不逐条追问
-- 9 个首批产品的结构化准入规则
+- 24 个产品档案，其中9个已启用自动匹配、15个因口径或客户字段不足转入人工复核
+- 49 家资金、场景、数据与渠道伙伴档案
 - 全产品逐条比对并按匹配度排序
 - 每个产品标注“可做”或“不建议”，展示符合项或明确卡点
 - 建议顺序、预估额度、利率、期限和材料清单
@@ -66,9 +67,18 @@ npx wrangler secret put ORIGIN_BASE_URL --config site-worker/wrangler.jsonc
 
 新增迁移文件后，应先备份，再在服务器执行 `/opt/jingfa-smart-match/database/mysql/migrate.sh`；脚本只执行尚未登记的迁移。不要依赖 Docker 初始化目录自动升级已有数据卷，因为该目录只会在首次创建数据卷时执行。
 
+产品、机构与资料索引共用同一份安全目录清单。前端目录更新后运行 `pnpm catalog:export` 生成 `database/mysql/catalog/financial-catalog-20260914.json`，再执行：
+
+```bash
+python3 database/mysql/import_catalog.py database/mysql/catalog/financial-catalog-20260914.json --execute
+python3 database/mysql/import_knowledge_bundle.py /opt/jingfa-smart-match/private/imports/2026-09-14 --execute
+```
+
+第二条命令只接受通过隐私检查的私有导入包。受限协议仅建立元数据与文件索引，不生成智能体检索分块；原始文件保存在服务器私有目录，不进入 Git 仓库或前端构建产物。
+
 备份脚本为 `database/mysql/backup.sh`，默认生成压缩 SQL、SHA-256 校验文件并保留 14 天。生产服务器已启用 `jingfa-mysql-backup.timer`，每天北京时间 03:20 后随机延迟最多 20 分钟执行，备份保存在 `/opt/jingfa-smart-match/database/backups`。对应的 systemd 单元位于 `database/mysql/systemd`。
 
-应用账号只有业务表所需的数据权限：可读取全库、读写业务记录、写入审计日志，但不能执行 DDL、修改迁移记录、修改既有审计记录或修改工作区配置。当前前端仍使用静态演示数据；后续接入上传和管理 API 后再迁移到 MySQL，避免影响现有线上功能。
+应用账号只有业务表所需的数据权限：可读取全库、读写业务记录、写入审计日志，但不能执行 DDL、修改迁移记录、修改既有审计记录或修改工作区配置。当前前端目录由版本化清单构建，MySQL 同步保存规范化产品、伙伴、资料元数据和安全文本分块；浏览器侧编辑仍是会话内状态，后续接入管理 API 后由 MySQL 作为唯一写入源。
 
 ## 安全边界
 
@@ -76,4 +86,4 @@ GitHub Pages 是静态托管环境。资料库密码不会以明文写入前端�
 
 ## 数据说明
 
-首批规则根据附件中的微众跨境电商贷、富融出海贷、PAOB 壹易贷、平安银行、浦发银行、中关村银行、汇丰银行、丰泊国际与天逸保理等资料整理。产品政策可能变化，所有页面均保留“以资金方最终审批为准”的提示。
+首批自动规则根据微众、富融、PAOB、平安、浦发、中关村、汇丰、丰泊与天逸等资料整理。本批新增Olea浩立、Qupital桥彼道、联易融国际Unloq和简单汇产品/方案；没有完整准入红线或无法由现有客户字段判定的记录不会自动标为“可做”。产品政策可能变化，所有页面均保留“以资金方最终审批为准”的提示。
