@@ -71,9 +71,9 @@ CREATE TABLE IF NOT EXISTS catalog_source_records (
   CONSTRAINT fk_catalog_source_records_workspace
     FOREIGN KEY (workspace_id) REFERENCES workspaces (id) ON DELETE RESTRICT,
   CONSTRAINT fk_catalog_source_records_partner
-    FOREIGN KEY (partner_id) REFERENCES partners (id) ON DELETE SET NULL,
+    FOREIGN KEY (partner_id) REFERENCES partners (id) ON DELETE RESTRICT,
   CONSTRAINT fk_catalog_source_records_product
-    FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE SET NULL,
+    FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE RESTRICT,
   CONSTRAINT chk_catalog_source_records_entity_type
     CHECK (entity_type IN ('partner', 'product', 'document')),
   CONSTRAINT chk_catalog_source_records_access
