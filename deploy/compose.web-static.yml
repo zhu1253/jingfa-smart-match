@@ -1,0 +1,14 @@
+name: jingfa-web
+services:
+  web:
+    image: caddy:2.10-alpine
+    container_name: jingfa-smart-match
+    command: ["caddy", "file-server", "--root", "/srv", "--listen", ":80"]
+    volumes: ["/opt/jingfa-smart-match/current:/srv:ro"]
+    networks: [gateway]
+    restart: unless-stopped
+    security_opt: ["no-new-privileges:true"]
+networks:
+  gateway:
+    external: true
+    name: baige-dashboard_internal

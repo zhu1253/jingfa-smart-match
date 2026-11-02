@@ -1,0 +1,7 @@
+{
+  "name": "jingfa-account-service",
+  "private": true,
+  "type": "module",
+  "scripts": { "start": "node auth-server.mjs", "test": "node --test auth.test.mjs" },
+  "dependencies": { "mysql2": "3.24.6" }
+}

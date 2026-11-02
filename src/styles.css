@@ -719,3 +719,31 @@ main { min-height: calc(100vh - 68px); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+.auth-status { min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px; text-align: center; }
+.auth-status h1 { font-size: 24px; }
+.auth-status p { color: var(--muted); line-height: 1.7; }
+.account-menu { position: relative; flex: none; }
+.account-menu summary { list-style: none; cursor: pointer; min-height: 40px; border-radius: 6px; }
+.account-menu summary::-webkit-details-marker { display: none; }
+.account-menu summary:hover { color: var(--blue-700); }
+.account-dropdown { position: absolute; top: calc(100% + 14px); right: 0; width: 232px; padding: 10px; border-radius: 10px; background: white; box-shadow: 0 10px 32px rgba(6,24,49,.16); }
+.account-dropdown p { display: grid; gap: 5px; padding: 10px 10px 15px; margin-bottom: 5px; border-bottom: 1px solid var(--line); }
+.account-dropdown p strong { font-size: 14px; }
+.account-dropdown p span { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.account-dropdown button { width: 100%; min-height: 42px; padding: 10px; border: 0; border-radius: 7px; background: transparent; text-align: start; font-size: 13px; }
+.account-dropdown button:hover { color: var(--blue-700); background: var(--blue-100); }
+.account-dropdown small { display: block; padding: 8px 10px; color: var(--red); line-height: 1.6; }
+.account-page { max-width: 1050px; margin-left: 0; }
+.account-profile h2 { font-size: 16px; margin-bottom: 22px; }
+.account-profile dl { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 24px; margin: 0; }
+.account-profile dt { color: var(--muted); font-size: 12px; margin-bottom: 10px; }
+.account-profile dd { margin: 0; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.account-password { margin-top: 20px; }
+.account-password h2 { display: flex; align-items: center; gap: 9px; }
+.account-password form { display: grid; gap: 20px; width: min(100%, 420px); }
+.account-password form label { display: grid; gap: 9px; font-size: 13px; font-weight: 600; }
+.account-password input { width: 100%; height: 42px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 7px; background: #fff; color: var(--text); }
+.account-password input:focus { border-color: var(--blue-600); }
+.account-password .button { justify-self: start; }
+@media (max-width: 600px) { .account-profile dl { grid-template-columns: 1fr; gap: 20px; } .account-menu .user-menu { padding-inline-start: 10px; } .account-menu .user-menu > span:nth-child(2) { display: none; } }

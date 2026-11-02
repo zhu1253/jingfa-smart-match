@@ -1,11 +1,13 @@
-import { lazy, Suspense, useState, type ReactNode } from "react";
+import { lazy, Suspense, useState, useEffect, useRef, type ReactNode } from "react";
 import { Banknote, BookOpen, Bot, Building2, ChevronDown, CircleHelp, Handshake, LayoutDashboard, LockKeyhole, Menu, PackageSearch, PanelLeftClose, Search, Settings, Users } from "lucide-react";
 import type { AgentContext } from "../agent";
 import { Logo } from "./ui";
+import { useAccount, clearPrivateSession } from "../auth-context";
+import { accountRequest } from "../auth-api";
 
 const AgentDock = lazy(() => import("./AgentDock").then((module) => ({ default: module.AgentDock })));
 
-export type View = "dashboard" | "match" | "clients" | "products" | "partners" | "library" | "settings" | "company" | "help";
+export type View = "dashboard" | "match" | "clients" | "products" | "partners" | "library" | "settings" | "company" | "help" | "account";
 
 const items = [
   { id: "dashboard" as const, label: "工作台", icon: LayoutDashboard },
@@ -19,13 +21,29 @@ const items = [
 ];
 
 export function AppShell({ view, onNavigate, libraryUnlocked, agentContext, children }: { view: View; onNavigate: (view: View) => void; libraryUnlocked: boolean; agentContext: AgentContext; children: ReactNode }) {
+  const user = useAccount();
+  const menuRef = useRef<HTMLDetailsElement>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [logoutError, setLogoutError] = useState('');
+  useEffect(() => {
+    const close = (event: PointerEvent) => { if (!menuRef.current?.contains(event.target as Node) && menuRef.current) menuRef.current.open = false; };
+    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape' && menuRef.current?.open) { menuRef.current.open = false; menuRef.current.querySelector('summary')?.focus(); } };
+    document.addEventListener('pointerdown', close); document.addEventListener('keydown', escape);
+    return () => { document.removeEventListener('pointerdown', close); document.removeEventListener('keydown', escape); };
+  }, []);
+  const logout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true); setLogoutError('');
+    try { await accountRequest('logout', {}); clearPrivateSession(); window.location.replace('/login'); }
+    catch (error) { setLogoutError(error instanceof Error ? error.message : '退出失败，请重试。'); setLoggingOut(false); }
+  };
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [agentOpen, setAgentOpen] = useState(false);
   const [agentLoaded, setAgentLoaded] = useState(false);
   const openAgent = () => { setAgentLoaded(true); setAgentOpen(true); setMobileOpen(false); };
   const select = (next: View) => { onNavigate(next); setMobileOpen(false); };
-  const activeLabel = view === "help" ? "帮助中心" : items.find((item) => item.id === view)?.label ?? "工作台";
+  const activeLabel = view === "account" ? "我的账号" : view === "help" ? "帮助中心" : items.find((item) => item.id === view)?.label ?? "工作台";
   return <div className={`app-shell ${collapsed ? "sidebar-collapsed" : ""}`}>
     <a className="skip-link" href="#main-content">跳到主要内容</a>
     <aside className={`sidebar ${mobileOpen ? "mobile-open" : ""}`}>
@@ -36,7 +54,7 @@ export function AppShell({ view, onNavigate, libraryUnlocked, agentContext, chil
     </aside>
     {mobileOpen ? <button className="mobile-backdrop" aria-label="关闭导航" onClick={() => setMobileOpen(false)} /> : null}
     <section className="main-column">
-      <header className="topbar"><button className="icon-button mobile-menu" aria-label="打开导航" onClick={() => setMobileOpen(true)}><Menu size={19} /></button><div className="topbar-title"><span>京发智配</span><i>/</i><strong>{activeLabel}</strong></div><label className="global-search"><Search size={16} /><input aria-label="搜索产品、客户或伙伴" placeholder="搜索产品、客户或伙伴" onFocus={() => select("products")} readOnly /></label><button className={`help-button ${view === "help" ? "active" : ""}`} onClick={() => select("help")} aria-current={view === "help" ? "page" : undefined}><CircleHelp size={16} /><span>帮助中心</span></button><div className="user-menu"><span className="avatar">张</span><span><strong>张顾问</strong><small>融资顾问</small></span><ChevronDown size={14} /></div></header>
+      <header className="topbar"><button className="icon-button mobile-menu" aria-label="打开导航" onClick={() => setMobileOpen(true)}><Menu size={19} /></button><div className="topbar-title"><span>京发智配</span><i>/</i><strong>{activeLabel}</strong></div><label className="global-search"><Search size={16} /><input aria-label="搜索产品、客户或伙伴" placeholder="搜索产品、客户或伙伴" onFocus={() => select("products")} readOnly /></label><button className={`help-button ${view === "help" ? "active" : ""}`} onClick={() => select("help")} aria-current={view === "help" ? "page" : undefined}><CircleHelp size={16} /><span>帮助中心</span></button><details className="account-menu" ref={menuRef}><summary className="user-menu" aria-label="账号菜单"><span className="avatar">{user.displayName.slice(0, 1)}</span><span><strong>{user.displayName}</strong><small>{user.role === 'admin' ? '管理员' : '融资顾问'}</small></span><ChevronDown size={14} /></summary><div className="account-dropdown"><p><strong>{user.displayName}</strong><span>{user.username}</span></p><button onClick={() => { if(menuRef.current) menuRef.current.open = false; select('account'); }}>我的账号与密码</button><button onClick={logout} disabled={loggingOut}>{loggingOut ? '正在退出…' : '退出登录'}</button>{logoutError ? <small role="alert">{logoutError}</small> : null}</div></details></header>
       <main id="main-content">{children}</main>
     </section>
     <div className={`agent-dock ${agentOpen ? "open" : ""}`}>{agentLoaded

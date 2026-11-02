@@ -184,6 +184,7 @@ export async function requestAgentReply(
     }
 
     if (!response.ok) {
+      if (response.status === 401) window.dispatchEvent(new Event('auth-expired'));
       if (fallbackReply) return fallbackReply;
       throw new Error(payload.error?.message || (response.status === 429
         ? "当前咨询较多，请稍后再试。"

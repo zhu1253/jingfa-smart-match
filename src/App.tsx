@@ -12,19 +12,21 @@ import { LibraryPage } from "./pages/LibraryPage";
 import { HelpPage } from "./pages/HelpPage";
 import { CompanyPage, SettingsPage } from "./pages/StaticPages";
 import { buildAgentContext } from "./agent";
+import { useAccount } from "./auth-context";
+import { AccountPage } from "./pages/AccountPage";
 
 const CLIENT_STORAGE_KEY = "jingfa-clients:v2";
 const LIBRARY_SESSION_KEY = "jingfa-library-session";
-const ROUTABLE_VIEWS: View[] = ["dashboard", "match", "clients", "products", "partners", "library", "settings", "company", "help"];
+const ROUTABLE_VIEWS: View[] = ["dashboard", "match", "clients", "products", "partners", "library", "settings", "company", "help", "account"];
 
 function readViewFromHash(): View {
   const candidate = window.location.hash.replace(/^#/, "") as View;
   return ROUTABLE_VIEWS.includes(candidate) ? candidate : "dashboard";
 }
 
-function loadClients() {
+function loadClients(storageKey: string, isAdmin: boolean) {
   try {
-    const stored = localStorage.getItem(CLIENT_STORAGE_KEY);
+    const stored = localStorage.getItem(storageKey) || (isAdmin ? localStorage.getItem(CLIENT_STORAGE_KEY) : null);
     if (!stored) return seedClients;
     const parsed = JSON.parse(stored) as ClientRecord[];
     return Array.isArray(parsed) && parsed.length ? parsed : seedClients;
@@ -34,9 +36,11 @@ function loadClients() {
 }
 
 export default function App() {
+  const user = useAccount();
+  const clientStorageKey = `jingfa-clients:v3:${user.id}`;
   const [view, setView] = useState<View>(readViewFromHash);
   const [helpReturnView, setHelpReturnView] = useState<View>("dashboard");
-  const [records, setRecords] = useState<ClientRecord[]>(loadClients);
+  const [records, setRecords] = useState<ClientRecord[]>(() => loadClients(clientStorageKey, user.role === "admin"));
   const [productItems, setProductItems] = useState<Product[]>(products);
   const [partnerItems, setPartnerItems] = useState<Partner[]>(partners);
   const [selectedClientId, setSelectedClientId] = useState(() => records[0]?.id ?? "haituo");
@@ -44,7 +48,7 @@ export default function App() {
   const [libraryUnlocked, setLibraryUnlocked] = useState(() => sessionStorage.getItem(LIBRARY_SESSION_KEY) === "unlocked");
   const [toast, setToast] = useState<{ message: string; tone: "success" | "error" } | null>(null);
 
-  useEffect(() => { try { localStorage.setItem(CLIENT_STORAGE_KEY, JSON.stringify(records)); } catch { /* Storage can be unavailable in private browsing. */ } }, [records]);
+  useEffect(() => { try { localStorage.setItem(clientStorageKey, JSON.stringify(records)); } catch { /* Storage can be unavailable in private browsing. */ } }, [records, clientStorageKey]);
   useEffect(() => { if (!toast) return undefined; const timer = window.setTimeout(() => setToast(null), 3200); return () => window.clearTimeout(timer); }, [toast]);
   useEffect(() => { const syncView = () => setView(readViewFromHash()); window.addEventListener("hashchange", syncView); window.addEventListener("popstate", syncView); return () => { window.removeEventListener("hashchange", syncView); window.removeEventListener("popstate", syncView); }; }, []);
 
@@ -65,7 +69,7 @@ export default function App() {
   const createClient = () => {
     const id = `client-${Date.now()}`;
     const profile = { ...defaultClient, companyName: "", city: "", operatingYears: Number.NaN, monthlyFlow: Number.NaN, annualSales: Number.NaN, annualRepayment: Number.NaN, assets: "", requestedAmount: Number.NaN, requestedTerm: Number.NaN };
-    setRecords((current) => [{ id, profile, completeness: 18, stage: "待补全", owner: "张顾问", updatedAt: "刚刚" }, ...current]);
+    setRecords((current) => [{ id, profile, completeness: 18, stage: "待补全", owner: user.displayName, updatedAt: "刚刚" }, ...current]);
     openMatch(id, "intake");
   };
   const unlockLibrary = () => { sessionStorage.setItem(LIBRARY_SESSION_KEY, "unlocked"); setLibraryUnlocked(true); };
@@ -80,6 +84,7 @@ export default function App() {
   else if (view === "library") content = <LibraryPage unlocked={libraryUnlocked} onUnlock={unlockLibrary} onLock={lockLibrary} notify={notify} />;
   else if (view === "help") content = <HelpPage contextView={helpReturnView} onBack={() => navigate(helpReturnView)} onNavigate={navigate} />;
   else if (view === "company") content = <CompanyPage />;
+  else if (view === "account") content = <AccountPage />;
   else content = <SettingsPage />;
 
   return <AppShell view={view} onNavigate={navigate} libraryUnlocked={libraryUnlocked} agentContext={agentContext}>{content}{toast ? <div className={`toast ${toast.tone}`} role="status">{toast.tone === "success" ? <CheckCircle2 size={17} /> : <CircleAlert size={17} />}<span>{toast.message}</span><button onClick={() => setToast(null)} aria-label="关闭提示"><X size={15} /></button></div> : null}</AppShell>;

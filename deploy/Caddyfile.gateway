@@ -1,0 +1,45 @@
+{$DASHBOARD_DOMAIN} {
+  encode zstd gzip
+  reverse_proxy app:3000
+  header {
+    -Server
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "SAMEORIGIN"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    Strict-Transport-Security "max-age=31536000; includeSubDomains"
+  }
+}
+
+www.jfsmartfit.xyz {
+  redir https://jfsmartfit.xyz{uri} permanent
+}
+
+jfsmartfit.xyz {
+  encode zstd gzip
+  @login path /login /login-assets/* /api/auth/*
+  handle @login {
+    reverse_proxy jingfa-auth:3100
+  }
+  handle_path /api/agent/* {
+    forward_auth jingfa-auth:3100 {
+      uri /api/auth/verify
+    }
+    reverse_proxy jingfa-agent-proxy:3000
+  }
+  handle {
+    forward_auth jingfa-auth:3100 {
+      uri /api/auth/verify-page
+    }
+    reverse_proxy jingfa-smart-match:80
+  }
+  header {
+    -Server
+    Cache-Control "no-store"
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "SAMEORIGIN"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    Strict-Transport-Security "max-age=31536000; includeSubDomains"
+  }
+}

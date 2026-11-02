@@ -21,6 +21,21 @@
 - 客户、产品和伙伴列表支持详情查看、返回及编辑操作
 - 资料库默认锁定，使用 Web Crypto PBKDF2 派生验证并采用会话级解锁
 - 浏览器本地保存最近填写的客户资料
+- 账号登录、真实身份菜单、退出和修改密码；MySQL 保存加盐密码哈希、会话摘要及登录限流记录
+
+## 账号系统部署
+
+正式站使用 `jingfa-auth` 独立后端服务（`server/auth-server.mjs`），通过 `deploy/Caddyfile.gateway` 为页面、静态资源和智能体接口统一验证登录。登录页单独构建，匿名请求无法读取业务包。会话 Cookie 采用 HttpOnly、Secure 和 SameSite=Lax，有效期8小时；退出会撤销服务端会话，修改密码会撤销该账号全部会话。登录页面不会展示默认凭据。
+
+初始化流程：先备份并应用 `004_account_sessions.sql`，创建仅能读写账号、会话和限流表的专用 MySQL 账号，再填写服务器私有 `auth.env`（参考 `server/auth.env.example`）。管理员通过 `server/bootstrap-account.mjs` 从后端环境变量 `BOOTSTRAP_USERNAME`、`BOOTSTRAP_PASSWORD` 和可选 `BOOTSTRAP_DISPLAY_NAME` 创建：脚本输出的 SQL 只包含 scrypt 加盐哈希，重复导入不会重置已有密码。实际密码和环境文件不得提交仓库。
+
+运行 `pnpm build:all` 同时构建业务页面 `dist/` 和独立登录页 `dist-login/`。将登录构建放在账号服务的 `public-login/` 下，并在服务目录执行 `npm ci --omit=dev --ignore-scripts`。`deploy/compose.auth.yml` 在私有 Docker 网络运行账号服务；`deploy/compose.web-static.yml` 使前端源站不再公开端口。配置、数据和旧容器应先备份再替换，最终在 Caddy 校验成功后热加载。
+
+账号服务健康检查为内部 `/health`；对外接口为 `/api/auth/login`、`session`、`logout` 和 `password`。所有写入接口严格校验同源请求。前端账号信息来自服务端，密码、Cookie 或登录令牌不保存在 localStorage。客户草稿按用户ID分别保存在浏览器中；业务资料的编辑落库仍属于独立功能。
+
+本地开发需先连接开发用 MySQL，设置 `PUBLIC_ORIGIN=http://127.0.0.1:4173`、`COOKIE_SECURE=false` 和数据库配置，再启动账号服务（3100端口）与 `pnpm dev`。Vite 已配置账号和登录页代理。本地开发账号应独立创建，不要使用生产数据库测试。`pnpm test:auth` 覆盖密码哈希、登录、会话、CSRF、过期、限流、改密及异常处理。
+
+GitHub Pages 的静态托管无法运行服务端登录，因此其入口发布为正式站跳转页；GitHub 继续保存维护源码。
 
 ## 本地运行
 
