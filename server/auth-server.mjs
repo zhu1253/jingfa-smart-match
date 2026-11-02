@@ -32,15 +32,15 @@ export async function createAuthServer({ store, origin, secure = true, sessionSe
   const server=http.createServer(async(req,res)=>{
     try {
       const url=new URL(req.url,'http://auth.internal');
-      if(req.method==='GET' && (url.pathname==='/login' || url.pathname.startsWith('/login-assets/'))) {
+      if(['GET','HEAD'].includes(req.method) && (url.pathname==='/login' || url.pathname.startsWith('/login-assets/'))) {
         const relative=url.pathname==='/login'?'login.html':url.pathname.slice(1);
         const file=path.resolve(publicDir,relative);
         if(!file.startsWith(path.resolve(publicDir)+path.sep))return fail(res,404,'not_found','页面不存在。');
         const bytes=await readFile(file).catch(()=>null);
         if(!bytes)return fail(res,404,'not_found','页面不存在。');
         const type=file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':file.endsWith('.svg')?'image/svg+xml':'text/html';
-        res.writeHead(200,{'content-type':`${type}; charset=utf-8`,'cache-control':file.endsWith('.html')?'no-store':'public,max-age=31536000,immutable','x-content-type-options':'nosniff','content-security-policy':"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"});
-        return res.end(bytes);
+        res.writeHead(200,{'content-type':`${type}; charset=utf-8`,'content-length':bytes.length,'cache-control':file.endsWith('.html')?'no-store':'public,max-age=31536000,immutable','x-content-type-options':'nosniff','content-security-policy':"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"});
+        return res.end(req.method==='HEAD'?undefined:bytes);
       }
       if(req.method==='GET'&&url.pathname==='/health'){await store.ping();return send(res,200,{status:'ok',service:'jingfa-auth'});}
       const tokenHash=tokenFrom(req);

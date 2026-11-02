@@ -6,7 +6,7 @@ import './login.css';
 
 function destination() {
   const value = new URLSearchParams(window.location.search).get('next') || '/';
-  return value.startsWith('/') && !value.startsWith('//') && !/[\\\r\n]/.test(value) && !value.startsWith('/login') ? value : '/';
+  return value.startsWith('/') && !value.startsWith('//') && !/[\\\r\n]/.test(value) && !value.startsWith('/login') ? `${value}${value.includes('#') ? '' : window.location.hash}` : '/';
 }
 
 function LoginPage() {
