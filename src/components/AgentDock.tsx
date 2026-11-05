@@ -3,6 +3,7 @@ import { Bot, Database, LoaderCircle, PackageSearch, RotateCcw, Send, Trash2, X 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { requestAgentReply, type AgentApiMessage, type AgentContext } from "../agent";
+import { motionBehavior } from "../preferences";
 
 type UiMessage = AgentApiMessage & { id: string };
 
@@ -37,7 +38,7 @@ export function AgentDock({ open, onOpenChange, context }: { open: boolean; onOp
 
   useEffect(() => {
     if (!open) return;
-    bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight, behavior: "smooth" });
+    bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight, behavior: motionBehavior() });
   }, [messages, pending, error, open]);
 
   useEffect(() => () => {

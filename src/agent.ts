@@ -13,6 +13,17 @@ type AgentApiResponse = {
 
 const AGENT_PROXY_URL = (import.meta.env.VITE_AGENT_PROXY_URL || "").replace(/\/$/, "");
 
+export async function checkAgentHealth(signal: AbortSignal) {
+  if (!AGENT_PROXY_URL) throw new Error("智能体服务地址尚未配置，请联系管理员。");
+  let response: Response;
+  try { response = await fetch(`${AGENT_PROXY_URL}/health`, { signal, cache: "no-store", credentials: "same-origin" }); }
+  catch (error) { if (signal.aborted) throw error; throw new Error("连接失败，请检查网络后重新检测。"); }
+  if (response.status === 401) { window.dispatchEvent(new Event("auth-expired")); throw new Error("登录已过期，请重新登录后检测。"); }
+  if (!response.ok) throw new Error("代理服务暂时不可用，请稍后重新检测或联系管理员。");
+  const payload = await response.json().catch(() => null);
+  if (payload?.status !== "ok" || payload?.service !== "jingfa-agent-proxy") throw new Error("服务响应异常，请联系管理员检查代理配置。");
+}
+
 function serializeClientProfile(client: ClientProfile) {
   const finiteOrNull = (value: number) => Number.isFinite(value) ? value : null;
   return {

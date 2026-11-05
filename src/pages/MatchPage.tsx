@@ -4,6 +4,7 @@ import { getMissingFields, runMatching } from "../matcher";
 import type { ClientProfile, ClientRecord, MatchResult, Product, ProductStatus } from "../types";
 import { MatchDetail } from "../components/MatchDetail";
 import { CompletionBar, StatusTag } from "../components/ui";
+import { motionBehavior } from "../preferences";
 
 const numberFields: Array<{ key: keyof ClientProfile; label: string; suffix: string; min?: number; step?: number }> = [
   { key: "operatingYears", label: "经营年限", suffix: "年", min: 0, step: 0.5 },
@@ -69,6 +70,6 @@ export function MatchPage({ records, productItems, selectedId, initialMode, onSe
   const [client, setClient] = useState<ClientProfile>(record.profile);
   const [mode, setMode] = useState(initialMode);
   const results = useMemo(() => runMatching(client, productItems), [client, productItems]);
-  const run = () => { if (getMissingFields(client).length) return; onUpdate({ ...record, profile: client, completeness: 100, stage: "可匹配", updatedAt: "刚刚" }); setMode("results"); notify("客户资料已保存，匹配结果已更新"); window.scrollTo({ top: 0, behavior: "smooth" }); };
+  const run = () => { if (getMissingFields(client).length) return; onUpdate({ ...record, profile: client, completeness: 100, stage: "可匹配", updatedAt: "刚刚" }); setMode("results"); notify("客户资料已保存，匹配结果已更新"); window.scrollTo({ top: 0, behavior: motionBehavior() }); };
   return <div className="page match-page"><div className="match-switch-row"><CustomerSwitcher records={records} selectedId={record.id} onSelect={onSelect} /><span><PackageSearch size={15} />切换后自动同步客户资料与匹配结果</span></div>{mode === "intake" ? <IntakeForm record={record} client={client} setClient={setClient} onRun={run} onBack={onBack} /> : <Results record={{ ...record, profile: client }} results={results} onEdit={() => setMode("intake")} onBack={onBack} notify={notify} />}</div>;
 }

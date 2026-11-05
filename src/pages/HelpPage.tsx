@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, BookOpen, Building2, CircleHelp, FileQuestion, H
 import type { LucideIcon } from "lucide-react";
 import type { View } from "../components/AppShell";
 import { EmptyState } from "../components/ui";
+import { motionBehavior } from "../preferences";
 
 type HelpCategory = "all" | "customer" | "product" | "partner" | "library";
 type Guide = { id: string; view: View; category: Exclude<HelpCategory, "all">; title: string; purpose: string; scenario: string; steps: string[]; keywords: string; icon: LucideIcon };
@@ -35,7 +36,7 @@ const contextGuideId: Partial<Record<View, string>> = { dashboard: "guide-dashbo
 const viewLabels: Partial<Record<View, string>> = { dashboard: "工作台", match: "智能匹配", clients: "客户管理", products: "产品中心", partners: "生态伙伴", library: "资料库", company: "公司介绍", settings: "系统设置" };
 
 function scrollToSection(id: string) {
-  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  document.getElementById(id)?.scrollIntoView({ behavior: motionBehavior(), block: "start" });
 }
 
 export function HelpPage({ contextView, onBack, onNavigate }: { contextView: View; onBack: () => void; onNavigate: (view: View) => void }) {

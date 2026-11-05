@@ -4,6 +4,7 @@ import type { AgentContext } from "../agent";
 import { Logo } from "./ui";
 import { useAccount, clearPrivateSession } from "../auth-context";
 import { accountRequest } from "../auth-api";
+import { usePreferences } from "../preferences-context";
 
 const AgentDock = lazy(() => import("./AgentDock").then((module) => ({ default: module.AgentDock })));
 
@@ -22,6 +23,7 @@ const items = [
 
 export function AppShell({ view, onNavigate, libraryUnlocked, agentContext, children }: { view: View; onNavigate: (view: View) => void; libraryUnlocked: boolean; agentContext: AgentContext; children: ReactNode }) {
   const user = useAccount();
+  const { preferences } = usePreferences();
   const menuRef = useRef<HTMLDetailsElement>(null);
   const [loggingOut, setLoggingOut] = useState(false);
   const [logoutError, setLogoutError] = useState('');
@@ -37,7 +39,8 @@ export function AppShell({ view, onNavigate, libraryUnlocked, agentContext, chil
     try { await accountRequest('logout', {}); clearPrivateSession(); window.location.replace('/login'); }
     catch (error) { setLogoutError(error instanceof Error ? error.message : '退出失败，请重试。'); setLoggingOut(false); }
   };
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(preferences.sidebarCollapsed);
+  useEffect(() => setCollapsed(preferences.sidebarCollapsed), [preferences.sidebarCollapsed]);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [agentOpen, setAgentOpen] = useState(false);
   const [agentLoaded, setAgentLoaded] = useState(false);
