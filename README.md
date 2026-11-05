@@ -37,6 +37,8 @@
 
 个人偏好使用带版本号的 `jingfa-preferences:v1:<user-id>` localStorage 键，不写入密码或服务密钥，不跨设备同步。默认进入页面仅在无有效页面 hash 时使用，已有深链接优先；减少动效同时遵循设备偏好。设置需保存后生效，支持取消、填入默认值及保存失败后重试。智能体“检测连接”仅调用同域 `/api/agent/health`，不发送对话、不验证上游模型可用性。
 
+正式域名的网关响应设置 `Alt-Svc: clear`，避免在 QUIC/UDP 连接不稳定的网络中自动切换至 HTTP/3 后导致刷新停滞；HTTPS 继续通过 TCP 提供服务。此设置仅应用于 `jfsmartfit.xyz`，不改变共享网关上的其他站点。
+
 本地开发需先连接开发用 MySQL，设置 `PUBLIC_ORIGIN=http://127.0.0.1:4173`、`COOKIE_SECURE=false` 和数据库配置，再启动账号服务（3100端口）与 `pnpm dev`。Vite 已配置账号和登录页代理。本地开发账号应独立创建，不要使用生产数据库测试。`pnpm test:auth` 覆盖密码哈希、登录、会话、CSRF、过期、限流、改密及异常处理。
 
 GitHub Pages 的静态托管无法运行服务端登录，因此其入口发布为正式站跳转页；GitHub 继续保存维护源码。
