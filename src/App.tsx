@@ -16,6 +16,7 @@ import { usePreferences } from "./preferences-context";
 import { buildAgentContext } from "./agent";
 import { useAccount } from "./auth-context";
 import { AccountPage } from "./pages/AccountPage";
+import { EmptyState } from "./components/ui";
 
 const CLIENT_STORAGE_KEY = "jingfa-clients:v2";
 const LIBRARY_SESSION_KEY = "jingfa-library-session";
@@ -31,7 +32,7 @@ function loadClients(storageKey: string, isAdmin: boolean) {
     const stored = localStorage.getItem(storageKey) || (isAdmin ? localStorage.getItem(CLIENT_STORAGE_KEY) : null);
     if (!stored) return seedClients;
     const parsed = JSON.parse(stored) as ClientRecord[];
-    return Array.isArray(parsed) && parsed.length ? parsed : seedClients;
+    return Array.isArray(parsed) ? parsed : seedClients;
   } catch {
     return seedClients;
   }
@@ -75,6 +76,17 @@ export default function App() {
   }, [view, settingsDirty]);
   const openMatch = (id: string, mode: "intake" | "results") => { setSelectedClientId(id); setMatchMode(mode); navigate("match"); };
   const updateClient = (updated: ClientRecord) => setRecords((current) => current.map((record) => record.id === updated.id ? updated : record));
+  const deleteClient = (id: string) => {
+    const deleted = records.find((record) => record.id === id);
+    if (!deleted) { notify("该客户已不存在，请刷新列表后重试。", "error"); return false; }
+    const remaining = records.filter((record) => record.id !== id);
+    try { localStorage.setItem(clientStorageKey, JSON.stringify(remaining)); }
+    catch { notify("删除未保存，请检查浏览器存储空间后重试。", "error"); return false; }
+    setRecords(remaining);
+    if (selectedClientId === id) { setSelectedClientId(remaining[0]?.id ?? ""); setMatchMode("results"); }
+    notify(`已删除客户“${deleted.profile.companyName || "未命名客户"}”`);
+    return true;
+  };
   const createClient = () => {
     const id = `client-${Date.now()}`;
     const profile = { ...defaultClient, companyName: "", city: "", operatingYears: Number.NaN, monthlyFlow: Number.NaN, annualSales: Number.NaN, annualRepayment: Number.NaN, assets: "", requestedAmount: Number.NaN, requestedTerm: Number.NaN };
@@ -85,10 +97,11 @@ export default function App() {
   const lockLibrary = () => { sessionStorage.removeItem(LIBRARY_SESSION_KEY); setLibraryUnlocked(false); };
 
   let content;
-  if (view === "dashboard") content = <DashboardPage records={records} productItems={productItems} selectedId={selectedRecord.id} onSelect={setSelectedClientId} onMatch={() => openMatch(selectedRecord.id, "results")} onEdit={() => openMatch(selectedRecord.id, "intake")} onClients={() => navigate("clients")} onProducts={() => navigate("products")} />;
-  else if (view === "match") content = <MatchPage key={`${selectedRecord.id}-${matchMode}`} records={records} productItems={productItems} selectedId={selectedRecord.id} initialMode={matchMode} onSelect={setSelectedClientId} onUpdate={updateClient} onBack={() => navigate("dashboard")} notify={notify} />;
-  else if (view === "clients") content = <ClientsPage records={records} productItems={productItems} onEdit={(id) => openMatch(id, "intake")} onMatch={(id) => openMatch(id, "results")} onCreate={createClient} />;
-  else if (view === "products") content = <ProductsPage items={productItems} onItemsChange={setProductItems} currentClient={selectedRecord.profile} onMatch={() => openMatch(selectedRecord.id, "results")} notify={notify} />;
+  if (!selectedRecord && (view === "dashboard" || view === "match")) content = <div className="page"><EmptyState title="暂无客户档案" description="录入客户后，即可查看经营信息和产品匹配结果；也可以直接向智能体描述公司情况。" action="录入客户" onAction={createClient} /></div>;
+  else if (view === "dashboard" && selectedRecord) content = <DashboardPage records={records} productItems={productItems} selectedId={selectedRecord.id} onSelect={setSelectedClientId} onMatch={() => openMatch(selectedRecord.id, "results")} onEdit={() => openMatch(selectedRecord.id, "intake")} onClients={() => navigate("clients")} onProducts={() => navigate("products")} />;
+  else if (view === "match" && selectedRecord) content = <MatchPage key={`${selectedRecord.id}-${matchMode}`} records={records} productItems={productItems} selectedId={selectedRecord.id} initialMode={matchMode} onSelect={setSelectedClientId} onUpdate={updateClient} onBack={() => navigate("dashboard")} notify={notify} />;
+  else if (view === "clients") content = <ClientsPage records={records} productItems={productItems} onDelete={deleteClient} onEdit={(id) => openMatch(id, "intake")} onMatch={(id) => openMatch(id, "results")} onCreate={createClient} />;
+  else if (view === "products") content = <ProductsPage items={productItems} onItemsChange={setProductItems} currentClient={selectedRecord?.profile} onMatch={() => selectedRecord ? openMatch(selectedRecord.id, "results") : navigate("clients")} notify={notify} />;
   else if (view === "partners") content = <PartnersPage items={partnerItems} onItemsChange={setPartnerItems} notify={notify} />;
   else if (view === "library") content = <LibraryPage unlocked={libraryUnlocked} onUnlock={unlockLibrary} onLock={lockLibrary} notify={notify} />;
   else if (view === "help") content = <HelpPage contextView={helpReturnView} onBack={() => navigate(helpReturnView)} onNavigate={navigate} />;

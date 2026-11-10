@@ -10,6 +10,7 @@
     "build:login": "vite build --config vite.auth.config.ts",
     "build:all": "pnpm build && pnpm build:login",
     "test:auth": "node --test server/auth.test.mjs",
+    "test:agent": "node --test worker/agent.test.mjs",
     "preview": "vite preview --host 0.0.0.0",
     "catalog:export": "node scripts/export-catalog.mjs"
   },

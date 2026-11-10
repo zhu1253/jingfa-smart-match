@@ -10,10 +10,10 @@ type UiMessage = AgentApiMessage & { id: string };
 const initialMessage: UiMessage = {
   id: "welcome",
   role: "assistant",
-  content: "您好，我是京发智配通用业务智能体。我已接入系统中的客户、产品、生态伙伴和资料库信息，可以协助自然问答、资料查询、内容总结、业务分析与报告生成。产品匹配默认关闭，仅在您主动开启后进行。",
+  content: "您好，我是京发智配业务智能体，可以查询系统资料、总结分析和生成报告。您也可以直接发送公司简介和融资需求，让我推荐平台产品，无需打开匹配开关。自动匹配默认关闭，开启后可分析工作台当前客户。",
 };
 
-const generalQuickQuestions = ["总结当前客户经营情况", "查询资料库中的产品信息", "分析生态伙伴合作机会", "生成业务分析简报"];
+const generalQuickQuestions = ["我想根据公司简介推荐融资产品，需要提供哪些信息？", "总结当前客户经营情况", "查询资料库中的产品信息", "生成业务分析简报"];
 const matchingQuickQuestions = ["整理客户缺失项", "解释产品匹配结果", "生成融资建议报告"];
 
 function createMessage(role: UiMessage["role"], content: string): UiMessage {
@@ -119,15 +119,15 @@ export function AgentDock({ open, onOpenChange, context }: { open: boolean; onOp
     <div className={`agent-mode ${matchingEnabled ? "enabled" : ""}`}>
       <PackageSearch size={16} />
       <div>
-        <strong>产品匹配</strong>
-        <small>{matchingEnabled ? `已开启 · 当前客户：${context.selectedClient.name || "待补全客户"}` : "默认关闭 · 普通问答不会推荐产品"}</small>
+        <strong>自动匹配当前客户</strong>
+        <small>{matchingEnabled ? `已开启 · ${context.selectedClient?.name || "暂无选中客户，可直接描述公司"}` : "已关闭 · 仍可发送公司简介，按需推荐产品"}</small>
       </div>
       <button
         type="button"
         className="agent-mode-switch"
         role="switch"
         aria-checked={matchingEnabled}
-        aria-label={matchingEnabled ? "关闭产品匹配" : "开启产品匹配"}
+        aria-label={matchingEnabled ? "关闭自动匹配当前客户" : "开启自动匹配当前客户"}
         disabled={pending}
         onClick={() => { setMatchingEnabled((value) => !value); setError(null); }}
       ><span /></button>
@@ -156,7 +156,7 @@ export function AgentDock({ open, onOpenChange, context }: { open: boolean; onOp
             submit(draft);
           }
         }}
-        placeholder={matchingEnabled ? "输入客户情况或产品匹配问题…" : "询问业务、查询资料或生成报告…"}
+        placeholder={matchingEnabled ? "询问当前客户，或描述另一家公司的融资需求…" : "输入公司简介和融资需求，或咨询其他业务…"}
         aria-label="输入给智能体的消息"
         rows={2}
       />

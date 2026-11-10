@@ -306,7 +306,25 @@ main { min-height: calc(100vh - 68px); }
 .search-control:focus-within { border-color: var(--blue-600); box-shadow: 0 0 0 3px rgba(23,104,229,.1); }
 .search-control input { width: 100%; border: 0; color: var(--text); background: transparent; font-size: 12px; }
 .list-page > .data-table { border-radius: 0 0 9px 9px; border-top: 0; }
-.client-management-table .table-head, .client-management-table .table-row { grid-template-columns: minmax(170px,1.3fr) minmax(130px,1fr) 135px 100px 92px 115px 80px; }
+.client-management-table .table-head, .client-management-table .table-row { grid-template-columns: minmax(170px,1.3fr) minmax(130px,1fr) 135px 100px 92px 115px 135px; }
+.client-name-button { min-width: 0; padding: 10px 0; border: 0; background: transparent; color: inherit; text-align: start; }
+.client-name-button:hover strong { color: var(--blue-700); text-decoration: underline; }
+.client-row-actions { display: flex; gap: 3px; align-items: center; }
+.row-detail-button.delete-client-button { color: var(--red); }
+.row-detail-button.delete-client-button:hover { border-color: #f4c6c6; background: var(--red-soft); }
+.client-detail-actions { display: flex; justify-content: flex-end; margin: -8px 0 18px; }
+.button.danger { color: #fff; background: #b42318; border-color: #b42318; }
+.button.danger:hover { background: #912018; border-color: #912018; }
+.button.quiet-danger { color: #b42318; background: #fff; border-color: #edc2be; }
+.button.quiet-danger:hover { color: #912018; background: var(--red-soft); }
+.delete-client-dialog { width: min(460px, calc(100vw - 32px)); margin: auto; padding: 28px; border: 1px solid var(--line); border-radius: 16px; color: var(--text); background: #fff; box-shadow: 0 24px 80px #10182833; }
+.delete-client-dialog::backdrop { background: #10182880; }
+.delete-client-icon { display: inline-flex; padding: 12px; border-radius: 50%; color: #b42318; background: var(--red-soft); }
+.delete-client-dialog h2 { margin: 18px 0 12px; font-size: 20px; }
+.delete-client-dialog p { font-size: 14px; line-height: 1.8; overflow-wrap: anywhere; color: var(--muted); }
+.delete-client-dialog strong { color: #101828; }
+.delete-client-dialog .delete-client-error { margin-top: 12px; color: #b42318; }
+.delete-client-dialog footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
 .product-management-table .table-head, .product-management-table .table-row { grid-template-columns: minmax(180px,1.4fr) minmax(130px,1fr) 125px 110px 100px 80px 80px; }
 .product-management-table .table-row > span:not(.entity-name):not(.row-action) { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .entity-name { display: flex; align-items: center; gap: 9px; }

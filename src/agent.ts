@@ -56,15 +56,15 @@ function serializeClientProfile(client: ClientProfile) {
 }
 
 export function buildAgentContext(
-  selectedRecord: ClientRecord,
+  selectedRecord: ClientRecord | undefined,
   records: ClientRecord[],
   catalog: Product[],
   partnerCatalog: Partner[],
   documents: LibraryDocument[],
   currentView: string,
 ) {
-  const selectedClient = selectedRecord.profile;
-  const results = runMatching(selectedClient, catalog);
+  const selectedClient = selectedRecord?.profile;
+  const results = selectedClient ? runMatching(selectedClient, catalog) : [];
   const commonMaterials = catalog.length
     ? catalog[0].materials.filter((material) => catalog.every((product) => product.materials.includes(material)))
     : [];
@@ -72,8 +72,8 @@ export function buildAgentContext(
 
   return {
     currentView,
-    selectedClientId: selectedRecord.id,
-    selectedClient: {
+    selectedClientId: selectedRecord?.id ?? null,
+    selectedClient: selectedRecord && selectedClient ? {
       id: selectedRecord.id,
       stage: selectedRecord.stage,
       completenessPercent: selectedRecord.completeness,
@@ -81,7 +81,7 @@ export function buildAgentContext(
       updatedAt: selectedRecord.updatedAt,
       missingFields: getMissingFields(selectedClient),
       ...serializeClientProfile(selectedClient),
-    },
+    } : null,
     clients: records.map((record) => ({
       id: record.id,
       stage: record.stage,
@@ -162,13 +162,13 @@ export async function requestAgentReply(
   const { productMatches, products, ...knowledgeContext } = context;
   const requestContext = {
     ...knowledgeContext,
-    products: matchingEnabled ? [] : products,
+    products,
     matchingMode: {
       enabled: matchingEnabled,
       selectedClientId: context.selectedClientId,
-      selectedClientName: context.selectedClient.name,
+      selectedClientName: context.selectedClient?.name ?? null,
     },
-    ...(matchingEnabled ? { productMatches } : {}),
+    ...(matchingEnabled ? { productMatches: productMatches.map(({ productId, status, score, passes, blocks, estimate }) => ({ productId, status, score, passes, blocks, estimate })) } : {}),
   };
   const requestBody = JSON.stringify({ messages, context: requestContext });
   let fallbackReply: { message: string; requestId?: string } | null = null;
