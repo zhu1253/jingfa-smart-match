@@ -31,7 +31,10 @@ test('explicit recommendations keep the product catalog with automatic matching 
   assert.equal(knowledge.products[0].id, 'p1');
   assert.deepEqual(knowledge.productMatches, []);
   assert.equal(upstream.messages.at(-1).content, question);
-  assert.equal(upstream.chat_template_kwargs.enable_thinking, false);
+  assert.equal(upstream.include_reasoning, false);
+  assert.equal(upstream.thinking_token_budget, 512);
+  assert(upstream.max_tokens > upstream.thinking_token_budget);
+  assert.equal(upstream.chat_template_kwargs, undefined);
   assert.match(upstream.messages[0].content, /不得要求用户先开启开关/);
   assert.match(upstream.messages[0].content, /以对话中最新的公司信息为准/);
   assert(!upstream.messages[0].content.includes('为 false 时：不得针对当前客户计算匹配度'));
@@ -67,4 +70,12 @@ test('empty customer lists can still request recommendations using company descr
   const response = await worker.fetch(request({ context: { ...context, selectedClient: null, clients: [], productMatches: [] }, messages: [{ role: 'user', content: '出口公司想融资，请推荐' }] }), env);
   assert.equal(response.status, 200);
   assert.match((await response.json()).message, /目录融资产品/);
+});
+
+test('only final content is returned; copywriting without recommendations gets no financing notice', async t => {
+  t.mock.method(globalThis, 'fetch', async () => Response.json({ choices: [{ message: { content: '我们是一家专注出口贸易的企业。', reasoning: 'private-analysis-fixture' } }] }));
+  const response = await worker.fetch(request({ context, messages: [{ role: 'user', content: '不用推荐产品，请只润色一句公司介绍。' }] }), env);
+  const body = await response.json();
+  assert.equal(body.message, '我们是一家专注出口贸易的企业。');
+  assert(!JSON.stringify(body).includes('private-analysis-fixture'));
 });

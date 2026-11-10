@@ -192,11 +192,12 @@ async function handleChat(request, env, origin, requestId) {
       ],
       stream: false,
       temperature: 0.25,
-      max_tokens: 1_400,
-      // This deployment's reasoning-capable endpoint can otherwise exhaust the
-      // generation budget before producing message.content. Request a direct
-      // business answer; never use a reasoning field as the visible response.
-      chat_template_kwargs: { enable_thinking: false },
+      // Preserve the upstream reasoning parser: disabling thinking can mix
+      // analysis into content for this model. Reserve room for the final answer,
+      // bound reasoning, and request that reasoning be omitted from responses.
+      max_tokens: 4_096,
+      thinking_token_budget: 512,
+      include_reasoning: false,
     });
     const requestOptions = {
       method: "POST",
@@ -263,7 +264,8 @@ async function handleChat(request, env, origin, requestId) {
     }
 
     const latestQuestion = checked.messages.findLast((item) => item.role === "user")?.content || "";
-    const needsApprovalNotice = matchingEnabled || /推荐|匹配|融资|贷款|授信|额度|利率/.test(latestQuestion);
+    const affirmativeQuestion = latestQuestion.replace(/(?:不用|不要|不需要|无需|请勿|不必).{0,4}(?:推荐|匹配)(?:产品)?/g, "");
+    const needsApprovalNotice = /推荐|匹配|融资|贷款|授信|额度|利率/.test(affirmativeQuestion) || /【可做】|【不建议】|预估额度|参考利率/.test(message);
     const normalizedMessage = needsApprovalNotice && !message.includes("以资金方最终审批为准")
       ? `${message.trim()}\n\n以资金方最终审批为准。`
       : message.trim();
