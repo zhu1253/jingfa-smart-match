@@ -112,6 +112,7 @@ export function buildAgentContext(
     partners: partnerCatalog.map((partner) => ({
       id: partner.id,
       name: partner.name,
+      aliases: partner.aliases ?? [],
       type: partner.type,
       description: partner.description,
       priority: partner.priority,

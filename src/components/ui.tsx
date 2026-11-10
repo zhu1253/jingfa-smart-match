@@ -1,17 +1,17 @@
 import type { ReactNode } from "react";
 import { ArrowLeft, Building2, CheckCircle2, ChevronRight, Inbox, Plus } from "lucide-react";
-import type { ProductStatus } from "../types";
+import type { PartnerStatus, ProductStatus } from "../types";
 
 export function Logo() {
   return <div className="logo" aria-label="京发智配"><span className="logo-mark"><span /><span /></span><span>京发智配</span></div>;
 }
 
-export function StatusTag({ status }: { status: ProductStatus | "待补全" | "跟进中" | "可匹配" | "优先合作" | "合作中" | "待接洽" }) {
-  const tone = ["可做", "可匹配", "优先合作", "合作中"].includes(status)
+export function StatusTag({ status }: { status: ProductStatus | "待补全" | "跟进中" | "可匹配" | PartnerStatus }) {
+  const tone = ["可做", "可匹配", "已签约"].includes(status)
     ? "success"
     : ["不建议"].includes(status)
       ? "danger"
-      : "warning";
+      : status === "签约流程中" ? "info" : status === "待洽谈" ? "neutral" : "warning";
   return <span className={`status-tag ${tone}`}><i aria-hidden="true" />{status}</span>;
 }
 

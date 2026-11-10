@@ -68,6 +68,9 @@ export type ClientRecord = {
   updatedAt: string;
 };
 
+export const PARTNER_STATUSES = ["已签约", "签约流程中", "待洽谈"] as const;
+export type PartnerStatus = typeof PARTNER_STATUSES[number];
+
 export type Partner = {
   id: string;
   name: string;
@@ -75,7 +78,8 @@ export type Partner = {
   description: string;
   priority: "最高" | "高" | "中" | "中长期";
   city: string;
-  status: "优先合作" | "合作中" | "待接洽";
+  status: PartnerStatus;
+  aliases?: string[];
   services: string[];
 };
 

@@ -84,11 +84,15 @@ def sql_for(payload: dict, manifest_sha: str) -> str:
         "SET @workspace_id := (SELECT id FROM workspaces WHERE slug='jingfa-smartfit' LIMIT 1);",
     ]
     for partner in payload["partners"]:
-        verification = "verified" if partner["id"] == "qupital" else ("partial" if partner.get("status") != "待接洽" else "unverified")
+        # Contract progress is maintained separately from document verification.
+        verification = "verified" if partner["id"] == "qupital" else "unverified"
+        status = partner.get("status", "待洽谈")
+        if status not in {"已签约", "签约流程中", "待洽谈"}:
+            status = "待洽谈"
         statements.append(
             "INSERT INTO partners (workspace_id,public_id,legacy_key,name,type,description,priority_code,city,status,verification_status,services,is_public) "
-            f"VALUES (@workspace_id,UUID(),{text_expr(partner['id'])},{text_expr(partner['name'])},{text_expr(partner['type'])},{text_expr(partner.get('description'))},{text_expr(partner.get('priority'))},{text_expr(partner.get('city'))},{text_expr(partner.get('status','待接洽'))},{text_expr(verification)},{json_expr(partner.get('services',[]))},TRUE) "
-            "ON DUPLICATE KEY UPDATE name=VALUES(name),type=VALUES(type),description=VALUES(description),priority_code=VALUES(priority_code),city=VALUES(city),status=VALUES(status),verification_status=VALUES(verification_status),services=VALUES(services),is_public=TRUE;"
+            f"VALUES (@workspace_id,UUID(),{text_expr(partner['id'])},{text_expr(partner['name'])},{text_expr(partner['type'])},{text_expr(partner.get('description'))},{text_expr(partner.get('priority'))},{text_expr(partner.get('city'))},{text_expr(status)},{text_expr(verification)},{json_expr(partner.get('services',[]))},TRUE) "
+            "ON DUPLICATE KEY UPDATE name=VALUES(name),type=VALUES(type),description=VALUES(description),priority_code=VALUES(priority_code),city=VALUES(city),services=VALUES(services),is_public=TRUE;"
         )
     for product in payload["products"]:
         verification = SOURCE_STATUS.get(product.get("sourceStatus"), "unverified")
