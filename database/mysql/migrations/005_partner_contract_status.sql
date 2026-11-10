@@ -30,6 +30,10 @@ SET status=CASE
 END
 WHERE workspace_id=@workspace_id AND deleted_at IS NULL;
 
+UPDATE partners
+SET description=REPLACE(description,'合作状态待确认。','当前处于签约流程中。')
+WHERE workspace_id=@workspace_id AND legacy_key='olea' AND deleted_at IS NULL;
+
 INSERT INTO schema_migrations (version,description)
 VALUES ('005','Record confirmed partner contract stages')
 ON DUPLICATE KEY UPDATE description=VALUES(description);
