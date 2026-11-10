@@ -31,6 +31,7 @@ test('explicit recommendations keep the product catalog with automatic matching 
   assert.equal(knowledge.products[0].id, 'p1');
   assert.deepEqual(knowledge.productMatches, []);
   assert.equal(upstream.messages.at(-1).content, question);
+  assert.equal(upstream.chat_template_kwargs.enable_thinking, false);
   assert.match(upstream.messages[0].content, /不得要求用户先开启开关/);
   assert.match(upstream.messages[0].content, /以对话中最新的公司信息为准/);
   assert(!upstream.messages[0].content.includes('为 false 时：不得针对当前客户计算匹配度'));

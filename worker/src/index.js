@@ -193,6 +193,10 @@ async function handleChat(request, env, origin, requestId) {
       stream: false,
       temperature: 0.25,
       max_tokens: 1_400,
+      // This deployment's reasoning-capable endpoint can otherwise exhaust the
+      // generation budget before producing message.content. Request a direct
+      // business answer; never use a reasoning field as the visible response.
+      chat_template_kwargs: { enable_thinking: false },
     });
     const requestOptions = {
       method: "POST",
