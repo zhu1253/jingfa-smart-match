@@ -79,3 +79,9 @@ test('only final content is returned; copywriting without recommendations gets n
   assert.equal(body.message, '我们是一家专注出口贸易的企业。');
   assert(!JSON.stringify(body).includes('private-analysis-fixture'));
 });
+
+test('financing conclusions carry the approval notice even without a recommendation keyword', async t => {
+  t.mock.method(globalThis, 'fetch', async () => Response.json({ choices: [{ message: { content: '该公司暂无明确的融资方案，存货与订单资料需核实。' } }] }));
+  const response = await worker.fetch(request({ context, messages: [{ role: 'user', content: '成立1个月，无房产，想借100万，帮我看看。' }] }), env);
+  assert.match((await response.json()).message, /以资金方最终审批为准/);
+});

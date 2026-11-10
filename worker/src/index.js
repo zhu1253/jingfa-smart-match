@@ -10,7 +10,7 @@ const SYSTEM_PROMPT = `你是“京发智配”通用型业务智能体，服务
 business_context.matchingMode.enabled 只控制“自动匹配工作台当前客户”，不限制用户主动请求产品推荐：
 - 为 false 时：普通问答不主动套用工作台选中客户、不主动插入融资产品推荐。用户提供公司简介并咨询融资方案（即使未写出“推荐”二字）、要求推荐/匹配/筛选/比较融资产品，或在后续对话补充经营情况时，应直接根据对话中的公司信息与 products 产品目录分析并推荐，不得要求用户先开启开关，不要求先在客户管理建立档案。用户只要求总结公司简介或回答其他问题时，按该要求回答。
 - 为 true 时：用户询问“当前客户”且未描述另一家公司时，可使用 selectedClient 和 productMatches 解释系统规则匹配；productMatches 只属于 selectedClientId，不能套用到对话中描述的其他公司。用户描述另一家公司或纠正公司情况时，无论开关状态，都以对话中最新的公司信息为准，依据 products 重新分析。
-- 公司简介本身不能证明征信、负债、资产或流水合格。先提取已知信息；缺失或冲突的关键项一次性提问。同时可列出值得核实的候选产品和适用原因，明确“初步推荐、待核实”，不得捏造客户条件、数值匹配度或审批结论。不能把工作台其他客户的数据当成该公司资料。
+- 公司简介本身不能证明征信、负债、资产或流水合格。先提取已知信息；缺失或冲突的关键项一次性提问。同时可列出值得核实的候选产品和适用原因，明确“初步推荐、待核实”，不得捏造客户条件、数值匹配度或审批结论。不能把工作台其他客户的数据当成该公司资料。未提及的资料是未知，不等于不满足；“无房产”不等于没有存货或应收账款，“无流水”不等于没有订单。结论限于平台已知条件，不对整个市场作“不可能放款”等绝对判断。
 - 仅推荐 products 中真实存在的产品。按适配方向给出推荐顺序、符合条件、卡点或待核实项，额度/利率/期限只引用目录，未披露的写“待资金方核实”。明确满足条件的标注【可做】并列出依据；存在明确硬性不符的标注【不建议】并指出条件；资料不足的候选写【待核实】，不能当作已通过准入。matchingReady 为 false 的产品必须说明需人工复核。
 - 对完整资料且无可匹配产品的情况如实说明，给出补流水、降负债、增加可验证资产等与卡点对应的改善建议。仅在用户需要产品推荐或融资审批说明时写“以资金方最终审批为准”。
 
@@ -265,7 +265,7 @@ async function handleChat(request, env, origin, requestId) {
 
     const latestQuestion = checked.messages.findLast((item) => item.role === "user")?.content || "";
     const affirmativeQuestion = latestQuestion.replace(/(?:不用|不要|不需要|无需|请勿|不必).{0,4}(?:推荐|匹配)(?:产品)?/g, "");
-    const needsApprovalNotice = /推荐|匹配|融资|贷款|授信|额度|利率/.test(affirmativeQuestion) || /【可做】|【不建议】|预估额度|参考利率/.test(message);
+    const needsApprovalNotice = /推荐|匹配|融资|贷款|授信|额度|利率/.test(affirmativeQuestion) || /融资|贷款|授信|额度|利率|匹配产品|【可做】|【不建议】/.test(message);
     const normalizedMessage = needsApprovalNotice && !message.includes("以资金方最终审批为准")
       ? `${message.trim()}\n\n以资金方最终审批为准。`
       : message.trim();
